@@ -1,6 +1,7 @@
 FROM node:22-alpine
 
-# build tools for better-sqlite3 native compilation (musl has no prebuilt binaries)
+# build tools: better-sqlite3 v12 ships musl prebuilds for x64/arm64 only;
+# armv7/i386 (and any prebuild miss) fall back to compiling from source
 RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
