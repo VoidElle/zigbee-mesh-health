@@ -8,6 +8,9 @@ FROM --platform=$BUILDPLATFORM node:22-alpine AS prisma
 WORKDIR /gen
 COPY package*.json ./
 RUN npm ci
+# tsconfig.json must be present before `prisma generate` (see root Dockerfile);
+# otherwise the generated client is emitted ESM-flavoured (import.meta).
+COPY tsconfig.json ./
 COPY prisma ./prisma
 RUN npx prisma generate
 

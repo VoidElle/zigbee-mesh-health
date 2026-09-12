@@ -11,10 +11,13 @@ RUN npm ci
 
 # Prisma client is generated into src/generated/prisma, so it must run before tsc.
 # The `prisma` CLI is build-only; runtime uses @prisma/client + the driver adapter.
+# tsconfig.json must be present before `prisma generate`: the prisma-client
+# generator infers CJS vs ESM (and import extensions) from it. Without it the
+# client is emitted ESM-flavoured (import.meta) and crashes at runtime.
+COPY tsconfig.json ./
 COPY prisma ./prisma
 RUN npx prisma generate
 
-COPY tsconfig.json ./
 COPY src ./src
 COPY public ./public
 RUN npm run build && npm run css && npm prune --omit=dev
