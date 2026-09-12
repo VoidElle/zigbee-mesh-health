@@ -57,7 +57,7 @@ jobs:
           file: addon/Dockerfile
           platforms: ${{ matrix.platform }}
           build-args: |
-            BUILD_FROM=ghcr.io/home-assistant/${{ matrix.arch }}-base:3.20
+            BUILD_FROM=ghcr.io/home-assistant/${{ matrix.arch }}-base:3.22
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/${{ matrix.arch }}-zigbee-mesh-health:${{ steps.ver.outputs.version }}
