@@ -15,6 +15,8 @@ Two ways to point the add-on at your broker:
 
 Zigbee2MQTT must already be publishing to that broker, with the same `base_topic` on both sides.
 
+To also capture route/delivery failures from the Zigbee2MQTT log, Zigbee2MQTT must publish its log over MQTT — add `'mqtt'` to `log.output` in its configuration (e.g. `log: { output: ['console', 'file', 'mqtt'] }`). Device leaves/joins/announces (`bridge/event`) and version/coordinator changes (`bridge/info`) are captured with no extra Zigbee2MQTT configuration.
+
 ## Options
 
 | Option | Default | Meaning |

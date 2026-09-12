@@ -12,9 +12,11 @@ A small self-hosted Node.js service that subscribes to your Zigbee2MQTT broker, 
 |---|---------|-----------|------|
 | 1 | **Passive LQI** — subscribes `<base_topic>/+`, extracts `linkquality` from normal device messages | continuous | zero extra radio traffic |
 | 2 | **Networkmap** — publishes `bridge/request/networkmap` with payload `"raw"` | 1/day scheduled (default 04:00) + manual trigger rate-limited to 1/hour | heavy |
-| 3 | **Bridge events** — subscribes `bridge/logging` and `bridge/info` (route/delivery failures, leaves, restarts, version changes) | continuous | negligible |
+| 3 | **Bridge events** — subscribes `bridge/event` (device leaves/joins/announces), `bridge/logging` (route/delivery failures, restarts) and `bridge/info` (version/coordinator changes) | continuous | negligible |
 
 **Why the networkmap must be rare:** it runs an *active* LQI scan — the coordinator interrogates every router on the mesh in sequence, generating additional radio traffic, and can take minutes with partial failures on unstable networks. Hammering it degrades the very network you're monitoring. That's why this app hard-caps it: one scheduled scan per day, no retry-on-timeout (the next scheduled run retries), and a server-side rate limit of minimum 1 hour between manual triggers. The manual trigger consumes the rate-limit window even when it fails, so a broken bridge can't be hammered. The snapshot is used only for the map view, never as a source for the continuous trend.
+
+**Getting log-based events:** Zigbee2MQTT publishes its log to `bridge/logging` only when its config includes mqtt in the output — `log: { output: ['console', 'file', 'mqtt'] }`; with the default output the topic stays silent, and only `bridge/event` and `bridge/info` events are recorded. Unmatched debug-level log lines are ignored, so enabling `log_level: debug` alongside mqtt output does not flood the event log.
 
 ## Configuration
 
