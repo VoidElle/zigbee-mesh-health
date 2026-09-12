@@ -69,6 +69,24 @@ docker compose up -d
 
 The compose file mounts `./data` for persistent SQLite storage and exposes port 8080. Set `MQTT_HOST` to your broker's address as seen from the container (e.g. `host.docker.internal` if the broker runs on the Docker host, or your broker's LAN IP / container name).
 
+## Home Assistant add-on
+
+This repo doubles as an **add-on repository**. Two ways to install:
+
+**A. From the published repository (prebuilt images):**
+1. HA UI: *Settings → Add-ons → Add-on Store → ⋮ (top right) → Repositories* → add `https://github.com/VoidElle/zigbee-mesh-health`.
+2. Refresh the store → **Zigbee Mesh Health** appears → **Install**. Prebuilt multi-arch images (aarch64/amd64/armv7/i386) are pulled from GHCR, so nothing is compiled on the HA box.
+3. Start the Mosquitto broker add-on (or use an external broker — see options), set options on the add-on **Configuration** tab, then **Start**. The **Log** should show `Starting zigbee-mesh-health (broker ...)`.
+
+**B. Local repository (no GHCR needed):**
+1. Clone this repo on the HA host (HAOS: via the SSH/Samba add-on, e.g. to `/addons/zigbee-mesh-health`; Container: next to the HA config dir).
+2. Remove the `image:` line from `addon/config.yaml` — otherwise the store tries to pull from GHCR.
+3. Add the **full local path** to the cloned repo (the directory containing `repository.yaml`) under *Repositories*, refresh, install. The image is built on the HA machine itself — takes minutes on ARM due to better-sqlite3.
+
+The dashboard opens from the HA sidebar as **Zigbee Mesh Health** (ingress — authenticated with your HA login, no extra credentials or exposed ports). All options are documented in [`addon/DOCS.md`](addon/DOCS.md); leave `mqtt_host` empty to auto-discover the Mosquitto broker add-on.
+
+**Releasing (version single-source rule):** a release is a git tag. Pushing a tag like `v1.0.0` triggers the [add-on workflow](.github/workflows/addon.yml), which builds all four arches and publishes them tagged with the `version:` from `addon/config.yaml` (plus `latest`). So before tagging, bump `version` in `addon/config.yaml` **and** `version` in `package.json` — keep the two and the tag in sync. GHCR packages must be set to **public** once (GitHub → Packages → the image → Package settings) or installs will fail with pull errors.
+
 ## Tuning the alert thresholds
 
 - **Warning (trend-based):** fires when `avg(24h) < avg(7d) × (1 − LQI_WARNING_THRESHOLD_PCT/100)`. Catches slow degradation — a device whose link is getting worse day by day. Lower the % for earlier warning, raise it to reduce noise.

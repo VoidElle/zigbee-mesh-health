@@ -19,17 +19,27 @@ The full product spec lives in `/instruction.md` (repo root). Every sub-agent MU
 - [x] [06 — Frontend: 4 views + design tokens](./06-frontend.md)
 - [x] [07 — Docker + README + final verification](./07-deploy-readme-verify.md)
 
-## Dependency graph
+## Phase 2 — Home Assistant add-on
+
+Packs the finished app as an HA add-on (`addon/` dir; root Docker/standalone files untouched). Sub-agents read the task file; no `instruction.md` section exists for this phase — each task file is the spec.
+
+- [x] [08 — Add-on scaffold: config.yaml, build.yaml, Dockerfile, run.sh](./08-ha-addon-scaffold.md)
+- [x] [09 — Ingress wiring, DOCS.md, icons, translations](./09-ha-addon-ingress-docs.md)
+- [x] [10 — Add-on repository + CI: multi-arch images on GHCR](./10-ha-addon-repo-ci.md)
+- [ ] [11 — Install on HA, verify, document "how to add"](./11-ha-addon-verify.md)
+
+Dependency graph (phase 2):
 
 ```
-01 ──► 02 ──┐
-   ──► 03 ──┤
-   ──► 04 ──┤
-   ──► 06 ──┼─► 05 ──► 07
+07 ──► 08 ──► 09 ──┐
+          ──► 10 ──┴─► 11
 ```
-01 is blocking-first (it installs all npm dependencies and defines the exports the
-others consume). 02, 03, 04 and 06 can run in parallel after 01.
-05 integrates their modules. 07 documents and verifies the whole thing.
+
+08 creates `addon/` (manifest, image build, options→env translation, MQTT service
+discovery via bashio, `/data` persistence). 09 (ingress/docs polish) and 10
+(repository + CI) run in parallel after 08. 11 installs on a real HA instance,
+runs the smoke checklist, and documents the add-steps. See task 11 for the exact
+"add repository → install → configure → start" steps.
 
 ## Cross-task interface contract (owned by task 01)
 

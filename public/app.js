@@ -70,9 +70,11 @@ function mockApi(path, opts) {
 }
 
 /* ===== API ===== */
+// Base-relative so calls work under a path prefix (HA ingress proxies at /api/hassio_ingress/<token>/)
+const API_BASE = location.pathname.endsWith('/') ? location.pathname : location.pathname.replace(/[^/]*$/, '');
 async function api(path, opts) {
   if (MOCK) return mockApi(path, opts);
-  const res = await fetch(path, opts);
+  const res = await fetch(API_BASE + path.replace(/^\//, ''), opts);
   const body = await res.json().catch(() => null);
   if (!res.ok) {
     const err = new Error((body && body.error) || String(res.status));
