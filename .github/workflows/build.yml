@@ -29,6 +29,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Lowercase owner for image tags
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
       - name: Read version from addon config
         id: ver
         run: |
@@ -55,7 +58,7 @@ jobs:
             BUILD_FROM=ghcr.io/home-assistant/${{ matrix.arch }}-base:3.20
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.arch }}-zigbee-mesh-health:${{ steps.ver.outputs.version }}
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.arch }}-zigbee-mesh-health:latest
+            ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/${{ matrix.arch }}-zigbee-mesh-health:${{ steps.ver.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/${{ matrix.arch }}-zigbee-mesh-health:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
