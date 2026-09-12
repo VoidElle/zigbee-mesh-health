@@ -91,13 +91,12 @@ export function requestNetworkMap(forceManual?: boolean): Promise<MapResult> {
   return inFlight;
 }
 
-export function triggerManualRefresh(): MapResult {
+export function triggerManualRefresh(): { ok: boolean; error?: string; promise?: Promise<MapResult> } {
   if (lastManualAt !== null && Date.now() - lastManualAt < MANUAL_RATE_LIMIT_MS) {
     return { ok: false, error: 'rate_limited' };
   }
   if (inFlight) return { ok: false, error: 'in_flight' };
-  void requestNetworkMap(true);
-  return { ok: true };
+  return { ok: true, promise: requestNetworkMap(true) };
 }
 
 function parseScheduleToCron(): string {

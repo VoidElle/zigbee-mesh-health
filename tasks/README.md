@@ -14,8 +14,8 @@ The full product spec lives in `/instruction.md` (repo root). Every sub-agent MU
 - [x] [01 — Foundation: config + storage](./01-foundation.md)
 - [x] [02 — MQTT collectors (passive LQI + bridge events)](./02-mqtt-collectors.md)
 - [x] [03 — Networkmap manager (scheduler + manual trigger)](./03-networkmap.md)
-- [ ] [04 — Analysis: moving averages + device status](./04-analysis.md)
-- [ ] [05 — Express API + app wiring](./05-api.md)
+- [x] [04 — Analysis: moving averages + device status](./04-analysis.md)
+- [x] [05 — Express API + app wiring](./05-api.md)
 - [ ] [06 — Frontend: 4 views + design tokens](./06-frontend.md)
 - [ ] [07 — Docker + README + final verification](./07-deploy-readme-verify.md)
 
