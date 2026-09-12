@@ -12,7 +12,7 @@ COPY src ./src
 RUN npm run build && npm prune --omit=dev
 COPY public ./public
 
-COPY run.sh /
+COPY addon/run.sh /
 RUN chmod a+x /run.sh
 
 CMD ["/run.sh"]
