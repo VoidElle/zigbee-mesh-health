@@ -46,6 +46,7 @@ All via environment variables:
 |-------|-------------|
 | `GET /api/devices` | Known devices with current LQI and alert state (`ok` / `warning` / `critical`) |
 | `GET /api/devices/{name}/history?range=24h\|7d\|30d` | LQI time series for one device |
+| `GET /api/mesh/history?range=24h\|7d\|30d` | Mesh-wide average LQI over time (~96 buckets) |
 | `GET /api/events?type=&since=` | Event log, filterable by type and time window (`24h`/`7d`/`30d` or ISO date) |
 | `GET /api/network/latest` | Last networkmap snapshot (404 until the first scan completes) |
 | `POST /api/network/refresh` | Manual networkmap trigger — rate-limited to 1/hour (429 if too soon, 409 if one is in flight) |

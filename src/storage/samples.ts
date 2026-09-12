@@ -70,6 +70,26 @@ export function history(device: string, sinceMs: number): { lqi: number; ts: str
     .all(device, since) as { lqi: number; ts: string }[];
 }
 
+// Mesh-wide average LQI over time, ~96 buckets across the range.
+// ponytail: message-weighted average — chatty devices dominate a bucket;
+// pre-average per device first if that ever skews the trend visibly.
+export function meshHistory(sinceMs: number): { ts: string; lqi: number; n: number }[] {
+  const db = getDb();
+  const since = new Date(Date.now() - sinceMs).toISOString();
+  const width = Math.max(1, Math.round(sinceMs / 96 / 1000)); // bucket size in seconds
+  const rows = db
+    .prepare(
+      `SELECT (CAST(strftime('%s', ts) AS INTEGER) / ?) * ? AS b, AVG(lqi) AS avg, COUNT(*) AS n
+       FROM linkquality_samples WHERE ts >= ? GROUP BY b ORDER BY b`
+    )
+    .all(width, width, since) as { b: number; avg: number; n: number }[];
+  return rows.map((r) => ({
+    ts: new Date(r.b * 1000).toISOString(),
+    lqi: Math.round(r.avg),
+    n: r.n,
+  }));
+}
+
 export function listDeviceNames(): string[] {
   const db = getDb();
   return (

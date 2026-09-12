@@ -30,11 +30,29 @@
         <h2>Panoramica</h2>
         <p id="home-empty" class="empty" hidden>Nessun dispositivo rilevato. In attesa di campioni da Zigbee2MQTT…</p>
         <div class="stats" id="hm-stats"></div>
-        <p class="snapts" id="hm-snap"></p>
-        <h3 class="sect">Dispositivi da controllare</h3>
-        <ul class="events" id="hm-watch"></ul>
-        <p id="hm-watch-empty" class="empty" hidden>Nessun dispositivo in attenzione o critico.</p>
-        <h3 class="sect">Eventi recenti (24h)</h3>
+        <div class="panel chartpanel">
+          <p class="hmchart-title">LQI medio della mesh · 24h</p>
+          <div class="chartwrap hmwrap"><canvas id="hm-chart" role="img" aria-label="Andamento LQI medio della mesh, ultime 24 ore"></canvas></div>
+          <p id="hm-chart-empty" class="empty" hidden>Nessun campione nelle ultime 24 ore.</p>
+        </div>
+        <div class="hmduo">
+          <div>
+            <h3 class="sect">Dispositivi da controllare</h3>
+            <ul class="events" id="hm-watch"></ul>
+            <p id="hm-watch-empty" class="empty" hidden>Nessun dispositivo in attenzione o critico.</p>
+          </div>
+          <div>
+            <h3 class="sect">Dispositivi silenziosi · 24h</h3>
+            <ul class="events" id="hm-stale"></ul>
+            <p id="hm-stale-empty" class="empty" hidden>Nessun dispositivo silenzioso: tutti hanno inviato dati nelle ultime 24 ore.</p>
+            <h3 class="sect">Mappa di rete</h3>
+            <p class="snapts" id="hm-snap"></p>
+            <p class="hmnet" id="hm-net"></p>
+          </div>
+        </div>
+        <h3 class="sect">Eventi · 24h</h3>
+        <p class="chips" id="hm-chips"></p>
+        <h3 class="sect">Eventi recenti</h3>
         <ul class="events" id="hm-events"></ul>
         <p id="hm-ev-empty" class="empty" hidden>Nessun evento nelle ultime 24 ore.</p>
       </section>

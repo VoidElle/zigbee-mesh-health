@@ -3,7 +3,7 @@ import * as path from 'path';
 import { config } from '../config';
 import { runtimeStatus } from '../runtime';
 import { computeDeviceSummaries } from '../analysis/status';
-import { history, listDeviceNames } from '../storage/samples';
+import { history, listDeviceNames, meshHistory } from '../storage/samples';
 import { listEvents, type EventType } from '../storage/events';
 import { getLatestSnapshot } from '../storage/snapshots';
 import { triggerManualRefresh } from '../networkmap';
@@ -67,6 +67,15 @@ export function startApi(): void {
     }
     const points = history(name, ms).map((r) => ({ ts: r.ts, lqi: r.lqi }));
     res.json({ name, range: queryStr(req, 'range'), points });
+  });
+
+  app.get('/api/mesh/history', (req, res) => {
+    const ms = RANGES[queryStr(req, 'range') ?? ''];
+    if (!ms) {
+      res.status(400).json({ error: 'invalid range' });
+      return;
+    }
+    res.json({ range: queryStr(req, 'range'), points: meshHistory(ms) });
   });
 
   app.get('/api/events', (req, res) => {

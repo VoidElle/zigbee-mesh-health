@@ -3,10 +3,10 @@
 /* ===== Mock layer (default OFF; enable with ?mock=1 for standalone preview) ===== */
 const MOCK = new URLSearchParams(location.search).has('mock');
 const MOCK_DEVICES = [
-  { name: 'Bagno - Valvola', ieee: '0x00124b0022b1c3cc', currentLqi: 31, status: 'critical', avg24h: 38, avg7d: 120, failures24h: 7 },
-  { name: 'Soggiorno - Porta', ieee: '0x00124b0022b1c3bb', currentLqi: 62, status: 'warning', avg24h: 68, avg7d: 152, failures24h: 1 },
-  { name: 'Cucina - Sensore', ieee: '0x00124b0022b1c3aa', currentLqi: 187, status: 'ok', avg24h: 190, avg7d: 193, failures24h: 0 },
-  { name: 'Presa Corridoio', ieee: '0x00124b0022b1c3dd', currentLqi: 132, status: 'ok', avg24h: 138, avg7d: 140, failures24h: 0 },
+  { name: 'Bagno - Valvola', ieee: '0x00124b0022b1c3cc', currentLqi: 31, status: 'critical', avg24h: 38, avg7d: 120, failures24h: 7, lastSeen: new Date(Date.now() - 3111e6).toISOString() },
+  { name: 'Soggiorno - Porta', ieee: '0x00124b0022b1c3bb', currentLqi: 62, status: 'warning', avg24h: 68, avg7d: 152, failures24h: 1, lastSeen: new Date(Date.now() - 42e5).toISOString() },
+  { name: 'Cucina - Sensore', ieee: '0x00124b0022b1c3aa', currentLqi: 187, status: 'ok', avg24h: 190, avg7d: 193, failures24h: 0, lastSeen: new Date(Date.now() - 9e5).toISOString() },
+  { name: 'Presa Corridoio', ieee: '0x00124b0022b1c3dd', currentLqi: 132, status: 'ok', avg24h: 138, avg7d: 140, failures24h: 0, lastSeen: new Date(Date.now() - 6e4).toISOString() },
 ];
 const MOCK_MAP = {
   nodes: [
@@ -67,6 +67,16 @@ function mockApi(path, opts) {
     return Promise.resolve({ events: evs });
   }
   if (p === '/api/network/latest') return Promise.resolve({ ts: iso(now - 75e5), value: MOCK_MAP });
+  if (p === '/api/mesh/history') {
+    const ms = RANGES_MS[q.get('range')] || 864e5;
+    const base = MOCK_DEVICES.reduce((a, d) => a + d.avg24h, 0) / MOCK_DEVICES.length;
+    const n = 96;
+    const points = Array.from({ length: n }, (_, i) => {
+      const t = now - ms + (ms * i) / (n - 1);
+      return { ts: iso(t), lqi: Math.max(5, Math.min(254, Math.round(base + 10 * Math.sin(i / 7) + 6 * Math.sin(i / 23)))) };
+    });
+    return Promise.resolve({ range: q.get('range'), points });
+  }
   return Promise.reject(new Error('mock: unknown ' + path));
 }
 
@@ -108,8 +118,9 @@ const EVENT_IT = {
   other: 'Altro',
 };
 
-const state = { devices: [], health: null, selected: null, range: '24h' };
+const state = { devices: [], health: null, snap: null, selected: null, range: '24h' };
 let chart = null;
+let hmChart = null;
 let historySeq = 0;
 
 function route() {
@@ -169,6 +180,7 @@ function renderDevHeader() {
 <span><span class="lab">media 24h </span><span class="val">${d.avg24h != null ? Math.round(d.avg24h) : '—'}</span></span>
 <span><span class="lab">media 7g </span><span class="val">${d.avg7d != null ? Math.round(d.avg7d) : '—'}</span></span>
 <span><span class="lab">guasti 24h </span><span class="val">${d.failures24h}</span></span>
+<span><span class="lab">ultimo msg </span><span class="val">${d.lastSeen ? fmtFull(d.lastSeen) : '—'}</span></span>
 <span><span class="lab">IEEE </span><span class="val">${d.ieee ? esc(d.ieee) : '—'}</span></span>`
     : '<span>Dispositivo non presente nei dati attuali</span>';
 }
@@ -233,11 +245,18 @@ const thresholdBands = {
   },
 };
 
-function fmtTick(v) {
+function fmtTick(v, range) {
   const d = new Date(v);
-  return state.range === '24h'
+  const rg = range || state.range;
+  return rg === '24h'
     ? d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
     : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
+}
+
+function applyChartDefaults() {
+  Chart.defaults.color = '#8B939B';
+  Chart.defaults.font.family = "'IBM Plex Mono', Menlo, Consolas, monospace";
+  Chart.defaults.font.size = 10.5;
 }
 
 function createChart() {
@@ -245,9 +264,7 @@ function createChart() {
     showChartEmpty('Chart.js non caricato (CDN non raggiungibile o offline)');
     return null;
   }
-  Chart.defaults.color = '#8B939B';
-  Chart.defaults.font.family = "'IBM Plex Mono', Menlo, Consolas, monospace";
-  Chart.defaults.font.size = 10.5;
+  applyChartDefaults();
   return new Chart(el('chart').getContext('2d'), {
     type: 'line',
     data: {
@@ -476,15 +493,19 @@ async function refreshMap() {
   }
 }
 
-/* ===== Overview (home): recap of devices, watchlist, recent events ===== */
+/* ===== Overview (home): recap of devices, watchlist, stale, mesh trend, events ===== */
 function renderHomeStats() {
   const ds = state.devices;
   const n = (s) => ds.filter((d) => d.status === s).length;
+  const avgLqi = ds.length ? Math.round(ds.reduce((a, d) => a + d.currentLqi, 0) / ds.length) : null;
+  const fails = ds.reduce((a, d) => a + (d.failures24h || 0), 0);
   el('hm-stats').innerHTML = `
     <div class="stat"><span class="n">${ds.length}</span><span class="l">Dispositivi</span></div>
     <div class="stat"><span class="n c-ok">${n('ok')}</span><span class="l">Ok</span></div>
     <div class="stat"><span class="n c-warn">${n('warning')}</span><span class="l">Attenzione</span></div>
-    <div class="stat"><span class="n c-crit">${n('critical')}</span><span class="l">Critici</span></div>`;
+    <div class="stat"><span class="n c-crit">${n('critical')}</span><span class="l">Critici</span></div>
+    <div class="stat"><span class="n" style="color:${statusColorLqi(avgLqi ?? 0, null)}">${avgLqi != null ? avgLqi : '—'}</span><span class="l">LQI medio</span></div>
+    <div class="stat"><span class="n${fails > 0 ? ' c-crit' : ''}">${fails}</span><span class="l">Guasti 24h</span></div>`;
   el('home-empty').hidden = ds.length > 0;
 }
 
@@ -504,24 +525,165 @@ function renderHomeWatch() {
   el('hm-watch-empty').hidden = bad.length > 0;
 }
 
+// Stale = no message in 24h. Sleepy battery sensors legitimately span hours,
+// so 24h is the ceiling; tighten if your devices report more often.
+const STALE_MS = 864e5;
+function renderHomeStale() {
+  const cut = Date.now() - STALE_MS;
+  const stale = state.devices
+    .filter((d) => !d.lastSeen || +new Date(d.lastSeen) < cut)
+    .sort((a, b) => String(a.lastSeen).localeCompare(String(b.lastSeen)));
+  el('hm-stale').innerHTML = stale
+    .map(
+      (d) => `<li><a class="hmrow" href="#/device/${encodeURIComponent(d.name)}">
+  <span class="dot dot-muted"></span>
+  <span class="hmname">${esc(d.name)}</span>
+  <span class="mono hmsub">ultimo msg ${d.lastSeen ? fmtFull(d.lastSeen) : 'mai'}</span>
+</a></li>`
+    )
+    .join('');
+  el('hm-stale-empty').hidden = stale.length > 0;
+}
+
 async function loadHomeEvents() {
   try {
-    const d = await api('/api/events?since=24h&limit=8');
+    // ponytail: type counts derived from this 500-row fetch — exact tallies need a dedicated endpoint
+    const d = await api('/api/events?since=24h&limit=500');
     const rows = d.events || [];
-    el('hm-events').innerHTML = rows.map(eventRow).join('');
+    el('hm-events').innerHTML = rows.slice(0, 8).map(eventRow).join('');
     el('hm-ev-empty').hidden = rows.length > 0;
+    const counts = {};
+    for (const e of rows) counts[e.event_type] = (counts[e.event_type] || 0) + 1;
+    el('hm-chips').innerHTML = Object.keys(counts).length
+      ? Object.entries(counts)
+          .map(([t, c]) => `<span class="chip"><span class="n">${c}</span>${EVENT_IT[t] || esc(t)}</span>`)
+          .join('')
+      : '<span class="chip"><span class="n">0</span>eventi</span>';
   } catch {
     el('hm-ev-empty').hidden = false;
+    el('hm-chips').innerHTML = '';
   }
+}
+
+function renderHomeNet() {
+  const box = el('hm-net');
+  if (!state.snap || !state.snap.value) {
+    box.textContent = 'Nessuno snapshot disponibile.';
+    return;
+  }
+  const v = state.snap.value;
+  const nodes = Array.isArray(v.nodes) ? v.nodes : [];
+  const links = Array.isArray(v.links) ? v.links : [];
+  const isType = (x, re) => re.test(String(x.type || ''));
+  const routers = nodes.filter((x) => isType(x, /router/i)).length;
+  const coord = nodes.filter((x) => isType(x, /coordinator/i)).length;
+  const ends = nodes.length - routers - coord;
+  const nameByIeee = new Map(
+    state.devices.filter((d) => d.ieee).map((d) => [d.ieee.toLowerCase(), d.name])
+  );
+  const nm = (ieee) => {
+    const k = String(ieee ?? '').toLowerCase();
+    return nameByIeee.get(k) || String(ieee ?? '?').slice(-8);
+  };
+  const weakest = [...links]
+    .sort((a, b) => (Number(a.lqi) || 0) - (Number(b.lqi) || 0))
+    .slice(0, 3);
+  box.innerHTML =
+    `${nodes.length} nodi · ${routers} router · ${ends} end device` +
+    (weakest.length
+      ? '<br>link più deboli:<br>' +
+        weakest
+          .map((l) => `<span class="mono">${esc(nm(l.sourceIeee))} → ${esc(nm(l.targetIeee))} · LQI ${Number(l.lqi) || 0}</span>`)
+          .join('<br>')
+      : '');
 }
 
 async function loadHomeSnapshot() {
   try {
-    const s = await api('/api/network/latest');
-    el('hm-snap').innerHTML = `Ultima mappa di rete: <span class="mono">${fmtFull(s.ts)}</span> — <a href="#/map">vedi</a>`;
+    state.snap = await api('/api/network/latest');
+    el('hm-snap').innerHTML = `Snapshot: <span class="mono">${fmtFull(state.snap.ts)}</span> — <a href="#/map">vedi</a>`;
   } catch {
+    state.snap = null;
     el('hm-snap').textContent = 'Nessuna mappa di rete ancora (scansione giornaliera o manuale dalla vista Mappa).';
   }
+  renderHomeNet();
+}
+
+async function loadHomeTrend() {
+  const wrap = document.querySelector('.hmwrap');
+  const empty = el('hm-chart-empty');
+  let data;
+  try {
+    data = await api('/api/mesh/history?range=24h');
+  } catch {
+    empty.hidden = false;
+    wrap.classList.add('has-empty');
+    return;
+  }
+  const pts = (data.points || []).map((p) => ({ x: +new Date(p.ts), y: p.lqi }));
+  if (!pts.length) {
+    empty.hidden = false;
+    wrap.classList.add('has-empty');
+    return;
+  }
+  if (typeof Chart === 'undefined') {
+    empty.textContent = 'Chart.js non caricato (CDN non raggiungibile o offline)';
+    empty.hidden = false;
+    wrap.classList.add('has-empty');
+    return;
+  }
+  empty.hidden = true;
+  wrap.classList.remove('has-empty');
+  if (!hmChart) {
+    applyChartDefaults();
+    hmChart = new Chart(el('hm-chart').getContext('2d'), {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            data: [],
+            borderWidth: 1.5,
+            fill: false,
+            pointRadius: 0,
+            pointHoverRadius: 3,
+            segment: { borderColor: (s) => statusColorLqi((s.p0.parsed.y + s.p1.parsed.y) / 2, null) },
+          },
+        ],
+      },
+      options: {
+        animation: { duration: 250 },
+        parsing: false,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (items) => fmtDateTime(items[0].parsed.x),
+              label: (item) => 'LQI medio ' + item.parsed.y,
+            },
+          },
+        },
+        scales: {
+          x: { type: 'linear', ticks: { maxTicksLimit: 7, callback: (v) => fmtTick(v, '24h') }, grid: { color: 'rgba(42,47,53,0.55)' } },
+          y: { min: 0, max: 255, title: { display: true, text: 'LQI', color: '#8B939B' }, grid: { color: 'rgba(42,47,53,0.55)' } },
+        },
+      },
+    });
+  }
+  const now = Date.now();
+  hmChart.options.scales.x.min = now - RANGES_MS['24h'];
+  hmChart.options.scales.x.max = now;
+  hmChart.data.datasets[0].data = pts;
+  hmChart.update();
+}
+
+function refreshHome() {
+  renderHomeStats();
+  renderHomeWatch();
+  renderHomeStale();
+  void loadHomeEvents();
+  void loadHomeTrend();
 }
 
 /* ===== Router ===== */
@@ -546,9 +708,7 @@ function onRoute() {
   } else {
     state.selected = null;
     renderSidebar();
-    renderHomeStats();
-    renderHomeWatch();
-    void loadHomeEvents();
+    refreshHome();
     void loadHomeSnapshot();
   }
 }
@@ -565,9 +725,7 @@ async function poll() {
   renderHealth();
   renderSidebar();
   if (route().view === 'home') {
-    renderHomeStats();
-    renderHomeWatch();
-    void loadHomeEvents();
+    refreshHome();
   } else if (route().view === 'device') {
     renderDevHeader();
     void loadHistory();

@@ -12,6 +12,7 @@ export interface DeviceSummary {
   avg24h: number | null;
   avg7d: number | null;
   failures24h: number;
+  lastSeen: string | null;
 }
 
 const HOUR = 3600_000;
@@ -53,7 +54,7 @@ export function computeDeviceSummaries(): DeviceSummary[] {
   const fails = failuresPerDevice(DAY);
 
   const summaries: DeviceSummary[] = [];
-  for (const { name, ieee, lqi } of latest.values()) {
+  for (const { name, ieee, lqi, ts } of latest.values()) {
     const avg24h = avg24.get(name) ?? null;
     const avg7d = avg7.get(name) ?? null;
     const failures24h = fails.get(name) ?? 0;
@@ -73,7 +74,7 @@ export function computeDeviceSummaries(): DeviceSummary[] {
       status = 'warning';
     }
 
-    summaries.push({ name, ieee, currentLqi: lqi, status, avg24h, avg7d, failures24h });
+    summaries.push({ name, ieee, currentLqi: lqi, status, avg24h, avg7d, failures24h, lastSeen: ts || null });
   }
   return summaries.sort((a, b) => a.name.localeCompare(b.name));
 }

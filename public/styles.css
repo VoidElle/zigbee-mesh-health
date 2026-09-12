@@ -234,6 +234,28 @@ html, body {
 .c-warn { color: var(--status-warning); }
 .c-crit { color: var(--status-critical); }
 #hm-snap a { color: var(--text-primary); }
+.hmchart-title { margin: 0 0 8px; color: var(--text-muted); font-size: var(--fs-label); }
+.hmwrap { height: 170px; }
+.hmduo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 22px;
+  align-items: start;
+}
+.hmnet { margin: 4px 0 0; color: var(--text-muted); font-size: var(--fs-label); }
+.hmnet .mono { color: var(--text-primary); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 6px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  padding: 4px 10px;
+  font-size: var(--fs-label);
+  color: var(--text-muted);
+}
+.chip .n { font-family: var(--font-mono); color: var(--text-primary); }
 .hmrow {
   display: flex;
   align-items: center;
@@ -333,4 +355,5 @@ a:focus-visible, button:focus-visible, select:focus-visible, .dev:focus-visible 
   .ev-dev { grid-row: 2; }
   .ev-msg { grid-row: 2; }
   .chartwrap { height: 260px; }
+  .hmduo { grid-template-columns: 1fr; }
 }

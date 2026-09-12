@@ -7,6 +7,7 @@ process.env.DATA_DIR = mkdtempSync(join(tmpdir(), 'mh-status-test-'));
 
 const { getDb } = await import('../dist/storage/db.js');
 const { computeDeviceSummaries } = await import('../dist/analysis/status.js');
+const { meshHistory } = await import('../dist/storage/samples.js');
 
 const db = getDb();
 const insSample = db.prepare(
@@ -51,5 +52,13 @@ assert(
 );
 assert(s['crit-low'].currentLqi === 40, 'currentLqi carried through');
 assert(s['ok-dev'].ieee === '0x1', 'ieee carried through');
+assert(s['ok-dev'].lastSeen && !Number.isNaN(Date.parse(s['ok-dev'].lastSeen)), 'lastSeen is a valid timestamp');
+
+// meshHistory: 24h window holds 12 samples (5×ok 200, 5×warn 100, crit-low 40, crit-fail 200)
+const mh = meshHistory(DAY);
+const tot = mh.reduce((a, p) => a + p.n, 0);
+assert(tot === 12 && mh.length === 5, 'meshHistory buckets and counts');
+assert(mh.every((p) => p.lqi >= 0 && p.lqi <= 255 && !Number.isNaN(Date.parse(p.ts))), 'meshHistory values sane');
+assert(mh.some((p) => p.lqi === 135) && mh.some((p) => p.lqi === 150), 'meshHistory averages');
 
 console.log('status.test OK');
