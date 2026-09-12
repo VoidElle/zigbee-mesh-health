@@ -25,10 +25,16 @@
 
     <main class="main">
       <section id="view-home" class="view" hidden>
-        <h2>Dispositivi</h2>
-        <div class="panel empty-panel">
-          <p id="home-empty" class="empty">Nessun dispositivo rilevato. In attesa di campioni da Zigbee2MQTT…</p>
-        </div>
+        <h2>Panoramica</h2>
+        <p id="home-empty" class="empty" hidden>Nessun dispositivo rilevato. In attesa di campioni da Zigbee2MQTT…</p>
+        <div class="stats" id="hm-stats"></div>
+        <p class="snapts" id="hm-snap"></p>
+        <h3 class="sect">Dispositivi da controllare</h3>
+        <ul class="events" id="hm-watch"></ul>
+        <p id="hm-watch-empty" class="empty" hidden>Nessun dispositivo in attenzione o critico.</p>
+        <h3 class="sect">Eventi recenti (24h)</h3>
+        <ul class="events" id="hm-events"></ul>
+        <p id="hm-ev-empty" class="empty" hidden>Nessun evento nelle ultime 24 ore.</p>
       </section>
 
       <section id="view-device" class="view" hidden>

@@ -107,7 +107,6 @@ const EVENT_IT = {
 };
 
 const state = { devices: [], health: null, selected: null, range: '24h' };
-let autoSelected = false;
 let chart = null;
 let historySeq = 0;
 
@@ -475,6 +474,54 @@ async function refreshMap() {
   }
 }
 
+/* ===== Overview (home): recap of devices, watchlist, recent events ===== */
+function renderHomeStats() {
+  const ds = state.devices;
+  const n = (s) => ds.filter((d) => d.status === s).length;
+  el('hm-stats').innerHTML = `
+    <div class="stat"><span class="n">${ds.length}</span><span class="l">Dispositivi</span></div>
+    <div class="stat"><span class="n c-ok">${n('ok')}</span><span class="l">Ok</span></div>
+    <div class="stat"><span class="n c-warn">${n('warning')}</span><span class="l">Attenzione</span></div>
+    <div class="stat"><span class="n c-crit">${n('critical')}</span><span class="l">Critici</span></div>`;
+  el('home-empty').hidden = ds.length > 0;
+}
+
+function renderHomeWatch() {
+  const bad = state.devices
+    .filter((d) => d.status !== 'ok')
+    .sort((a, b) => RANK[a.status] - RANK[b.status] || a.name.localeCompare(b.name));
+  el('hm-watch').innerHTML = bad
+    .map(
+      (d) => `<li><a class="hmrow" href="#/device/${encodeURIComponent(d.name)}">
+  <span class="dot dot-${d.status}"></span>
+  <span class="hmname">${esc(d.name)}</span>
+  <span class="mono hmsub">LQI ${d.currentLqi} · media 24h ${d.avg24h != null ? Math.round(d.avg24h) : '—'} · media 7g ${d.avg7d != null ? Math.round(d.avg7d) : '—'} · guasti 24h ${d.failures24h}</span>
+</a></li>`
+    )
+    .join('');
+  el('hm-watch-empty').hidden = bad.length > 0;
+}
+
+async function loadHomeEvents() {
+  try {
+    const d = await api('/api/events?since=24h&limit=8');
+    const rows = d.events || [];
+    el('hm-events').innerHTML = rows.map(eventRow).join('');
+    el('hm-ev-empty').hidden = rows.length > 0;
+  } catch {
+    el('hm-ev-empty').hidden = false;
+  }
+}
+
+async function loadHomeSnapshot() {
+  try {
+    const s = await api('/api/network/latest');
+    el('hm-snap').innerHTML = `Ultima mappa di rete: <span class="mono">${fmtFull(s.ts)}</span> — <a href="#/map">vedi</a>`;
+  } catch {
+    el('hm-snap').textContent = 'Nessuna mappa di rete ancora (scansione giornaliera o manuale dalla vista Mappa).';
+  }
+}
+
 /* ===== Router ===== */
 const VIEWS = { home: 'view-home', device: 'view-device', map: 'view-map', events: 'view-events' };
 
@@ -497,9 +544,10 @@ function onRoute() {
   } else {
     state.selected = null;
     renderSidebar();
-    el('home-empty').textContent = state.devices.length
-      ? 'Seleziona un dispositivo dall\u2019elenco.'
-      : 'Nessun dispositivo rilevato. In attesa di campioni da Zigbee2MQTT…';
+    renderHomeStats();
+    renderHomeWatch();
+    void loadHomeEvents();
+    void loadHomeSnapshot();
   }
 }
 
@@ -514,11 +562,11 @@ async function poll() {
   }
   renderHealth();
   renderSidebar();
-  if (!autoSelected && !location.hash && state.devices.length) {
-    autoSelected = true;
-    location.hash = '#/device/' + encodeURIComponent(state.devices[0].name);
-  }
-  if (route().view === 'device') {
+  if (route().view === 'home') {
+    renderHomeStats();
+    renderHomeWatch();
+    void loadHomeEvents();
+  } else if (route().view === 'device') {
     renderDevHeader();
     void loadHistory();
   }
