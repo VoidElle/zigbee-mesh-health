@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mesh Health</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/chart.umd.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <header class="brand">
+        <h1>Mesh Health</h1>
+        <p class="health"><span class="dot dot-muted" id="health-dot"></span><span id="health-text">Avvio…</span></p>
+        <p class="health-sub mono" id="health-sample" hidden></p>
+      </header>
+      <nav class="devlist" id="devlist" aria-label="Dispositivi"></nav>
+      <footer class="sidefoot">
+        <a href="#/map" id="nav-map">Mappa di rete</a>
+        <a href="#/events" id="nav-events">Eventi</a>
+      </footer>
+    </aside>
+
+    <main class="main">
+      <section id="view-home" class="view" hidden>
+        <h2>Dispositivi</h2>
+        <div class="panel empty-panel">
+          <p id="home-empty" class="empty">Nessun dispositivo rilevato. In attesa di campioni da Zigbee2MQTT…</p>
+        </div>
+      </section>
+
+      <section id="view-device" class="view" hidden>
+        <a class="back" href="#/">← Dispositivi</a>
+        <header class="devhead">
+          <h2 id="dev-name">—</h2>
+          <p class="devdata" id="dev-data"></p>
+        </header>
+        <div class="rangebar" role="group" aria-label="Intervallo temporale">
+          <button type="button" data-range="24h">24h</button>
+          <button type="button" data-range="7d">7g</button>
+          <button type="button" data-range="30d">30g</button>
+        </div>
+        <div class="panel chartpanel">
+          <p id="chart-empty" class="empty" hidden>Ancora nessun campione raccolto per questo dispositivo</p>
+          <div class="chartwrap"><canvas id="chart" role="img" aria-label="Grafico andamento LQI"></canvas></div>
+        </div>
+        <h3 class="sect">Eventi recenti</h3>
+        <ul class="events" id="dev-events"></ul>
+      </section>
+
+      <section id="view-map" class="view" hidden>
+        <h2>Mappa di rete</h2>
+        <p class="snapts">Snapshot: <span class="mono" id="map-ts">—</span></p>
+        <p id="map-msg" class="mapmsg" hidden></p>
+        <div class="panel mappanel">
+          <p id="map-empty" class="empty" hidden>Nessuno snapshot disponibile. Usare il pulsante sottostante per richiederne uno (operazione rara e lenta).</p>
+          <div id="map-svg"></div>
+        </div>
+        <div class="maplegend" aria-hidden="true">
+          <span><i class="lg lg-ok"></i>LQI ≥ 120</span>
+          <span><i class="lg lg-warn"></i>60–119</span>
+          <span><i class="lg lg-crit"></i>&lt; 60</span>
+        </div>
+        <button type="button" id="map-refresh">Aggiorna mappa (operazione lenta, max 1/ora)</button>
+      </section>
+
+      <section id="view-events" class="view" hidden>
+        <h2>Eventi</h2>
+        <form class="filters" id="ev-filters">
+          <label>Tipo
+            <select id="ev-type">
+              <option value="">Tutti i tipi</option>
+              <option value="route_failure">Guasto route</option>
+              <option value="delivery_failure">Consegna fallita</option>
+              <option value="device_leave">Uscita dispositivo</option>
+              <option value="bridge_restart">Restart bridge</option>
+              <option value="version_change">Cambio versione</option>
+              <option value="other">Altro</option>
+            </select>
+          </label>
+          <label>Periodo
+            <select id="ev-since">
+              <option value="24h">Ultime 24 ore</option>
+              <option value="7d">Ultimi 7 giorni</option>
+              <option value="30d">Ultimi 30 giorni</option>
+              <option value="">Tutto</option>
+            </select>
+          </label>
+        </form>
+        <ul class="events" id="ev-list"></ul>
+        <p id="ev-empty" class="empty" hidden>Nessun evento nel periodo selezionato.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
