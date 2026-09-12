@@ -12,7 +12,7 @@ The full product spec lives in `/instruction.md` (repo root). Every sub-agent MU
 ## Checkbox list
 
 - [x] [01 — Foundation: config + storage](./01-foundation.md)
-- [ ] [02 — MQTT collectors (passive LQI + bridge events)](./02-mqtt-collectors.md)
+- [x] [02 — MQTT collectors (passive LQI + bridge events)](./02-mqtt-collectors.md)
 - [ ] [03 — Networkmap manager (scheduler + manual trigger)](./03-networkmap.md)
 - [ ] [04 — Analysis: moving averages + device status](./04-analysis.md)
 - [ ] [05 — Express API + app wiring](./05-api.md)
