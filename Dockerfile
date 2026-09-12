@@ -16,9 +16,8 @@ RUN npx prisma generate
 
 COPY tsconfig.json ./
 COPY src ./src
-RUN npm run build && npm prune --omit=dev
-
 COPY public ./public
+RUN npm run build && npm run css && npm prune --omit=dev
 
 ENV DATA_DIR=/app/data
 RUN mkdir -p /app/data

@@ -5,98 +5,96 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mesh Health</title>
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.js"
-          integrity="sha384-85f92eaab29e5859a74cc58ddf5556ca87bcc607530030f5d6483199da71daec84ea3e40cf9b99ababba00a6189803b0"
-          crossorigin="anonymous" defer></script>
+  <script src="vendor/chart.umd.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
-  <div class="layout">
-    <aside class="sidebar">
-      <header class="brand">
-        <h1>Mesh Health</h1>
-        <p class="health"><span class="dot dot-muted" id="health-dot"></span><span id="health-text">Avvio…</span></p>
-        <p class="health-sub mono" id="health-sample" hidden></p>
+  <div class="grid grid-cols-[272px_1fr] min-h-screen max-[720px]:grid-cols-1">
+    <aside class="bg-panel border-r border-line flex flex-col sticky top-0 h-screen max-[720px]:static max-[720px]:h-auto max-[720px]:border-r-0 max-[720px]:border-b max-[720px]:border-line">
+      <header class="p-[14px_14px_10px] border-b border-line">
+        <h1 class="m-0 mb-1.5 text-title font-semibold tracking-[0.02em]">Mesh Health</h1>
+        <p class="m-0 flex items-center gap-[7px] text-label text-muted"><span class="inline-block w-2 h-2 rounded-full flex-none bg-muted" id="health-dot"></span><span id="health-text">Avvio…</span></p>
+        <p class="mt-0.5 mb-0 text-label text-muted font-mono" id="health-sample" hidden></p>
       </header>
-      <nav class="devlist" id="devlist" aria-label="Dispositivi"></nav>
-      <footer class="sidefoot">
-        <a href="#/map" id="nav-map">Mappa di rete</a>
-        <a href="#/events" id="nav-events">Eventi</a>
+      <nav class="flex-1 overflow-y-auto py-1.5 max-[720px]:max-h-[40vh]" id="devlist" aria-label="Dispositivi"></nav>
+      <footer class="border-t border-line px-[14px] py-2 flex flex-col gap-0.5 max-[720px]:flex-row max-[720px]:gap-4">
+        <a href="#/map" id="nav-map" class="text-muted no-underline py-[5px] text-section hover:text-ink aria-[current=page]:text-ink">Mappa di rete</a>
+        <a href="#/events" id="nav-events" class="text-muted no-underline py-[5px] text-section hover:text-ink aria-[current=page]:text-ink">Eventi</a>
       </footer>
     </aside>
 
-    <main class="main">
-      <section id="view-home" class="view" hidden>
-        <h2>Panoramica</h2>
-        <p id="home-empty" class="empty" hidden>Nessun dispositivo rilevato. In attesa di campioni da Zigbee2MQTT…</p>
-        <div class="stats" id="hm-stats"></div>
-        <div class="panel chartpanel">
-          <p class="hmchart-title">LQI medio della mesh · 24h</p>
-          <div class="chartwrap hmwrap"><canvas id="hm-chart" role="img" aria-label="Andamento LQI medio della mesh, ultime 24 ore"></canvas></div>
-          <p id="hm-chart-empty" class="empty" hidden>Nessun campione nelle ultime 24 ore.</p>
+    <main class="px-[22px] pt-[18px] pb-[40px] min-w-0 max-[720px]:px-[14px] max-[720px]:pb-8">
+      <section id="view-home" hidden>
+        <h2 class="m-0 mb-1 text-title font-semibold">Panoramica</h2>
+        <p id="home-empty" class="m-0 text-muted text-body" hidden>Nessun dispositivo rilevato. In attesa di campioni da Zigbee2MQTT…</p>
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-2.5 mt-3" id="hm-stats"></div>
+        <div class="bg-panel border border-line p-[14px] mb-1">
+          <p class="mt-0 mb-2 text-muted text-label">LQI medio della mesh · 24h</p>
+          <div id="hm-chart-wrap" class="relative h-[170px]"><canvas id="hm-chart" role="img" aria-label="Andamento LQI medio della mesh, ultime 24 ore"></canvas></div>
+          <p id="hm-chart-empty" class="m-0 text-muted text-body" hidden>Nessun campione nelle ultime 24 ore.</p>
         </div>
-        <div class="hmduo">
+        <div class="grid grid-cols-2 gap-x-[22px] items-start max-[720px]:grid-cols-1">
           <div>
-            <h3 class="sect">Dispositivi da controllare</h3>
-            <ul class="events" id="hm-watch"></ul>
-            <p id="hm-watch-empty" class="empty" hidden>Nessun dispositivo in attenzione o critico.</p>
+            <h3 class="mt-[22px] mb-2 text-section font-semibold text-ink">Dispositivi da controllare</h3>
+            <ul class="list-none m-0 p-0 border border-line" id="hm-watch"></ul>
+            <p id="hm-watch-empty" class="m-0 text-muted text-body" hidden>Nessun dispositivo in attenzione o critico.</p>
           </div>
           <div>
-            <h3 class="sect">Dispositivi silenziosi · 24h</h3>
-            <ul class="events" id="hm-stale"></ul>
-            <p id="hm-stale-empty" class="empty" hidden>Nessun dispositivo silenzioso: tutti hanno inviato dati nelle ultime 24 ore.</p>
-            <h3 class="sect">Mappa di rete</h3>
-            <p class="snapts" id="hm-snap"></p>
-            <p class="hmnet" id="hm-net"></p>
+            <h3 class="mt-[22px] mb-2 text-section font-semibold text-ink">Dispositivi silenziosi · 24h</h3>
+            <ul class="list-none m-0 p-0 border border-line" id="hm-stale"></ul>
+            <p id="hm-stale-empty" class="m-0 text-muted text-body" hidden>Nessun dispositivo silenzioso: tutti hanno inviato dati nelle ultime 24 ore.</p>
+            <h3 class="mt-[22px] mb-2 text-section font-semibold text-ink">Mappa di rete</h3>
+            <p class="mt-0.5 mb-3 text-muted text-body" id="hm-snap"></p>
+            <p class="mt-1 mb-0 text-muted text-label" id="hm-net"></p>
           </div>
         </div>
-        <h3 class="sect">Eventi · 24h</h3>
-        <p class="chips" id="hm-chips"></p>
-        <h3 class="sect">Eventi recenti</h3>
-        <ul class="events" id="hm-events"></ul>
-        <p id="hm-ev-empty" class="empty" hidden>Nessun evento nelle ultime 24 ore.</p>
+        <h3 class="mt-[22px] mb-2 text-section font-semibold text-ink">Eventi · 24h</h3>
+        <p class="flex flex-wrap gap-2 mt-0 mb-1.5" id="hm-chips"></p>
+        <h3 class="mt-[22px] mb-2 text-section font-semibold text-ink">Eventi recenti</h3>
+        <ul class="list-none m-0 p-0 border border-line" id="hm-events"></ul>
+        <p id="hm-ev-empty" class="m-0 text-muted text-body" hidden>Nessun evento nelle ultime 24 ore.</p>
       </section>
 
-      <section id="view-device" class="view" hidden>
-        <a class="back" href="#/">← Dispositivi</a>
-        <header class="devhead">
-          <h2 id="dev-name">—</h2>
-          <p class="devdata" id="dev-data"></p>
+      <section id="view-device" hidden>
+        <a class="hidden text-muted no-underline text-label hover:text-ink max-[720px]:inline-block max-[720px]:mb-2" href="#/">← Dispositivi</a>
+        <header class="mb-[14px]">
+          <h2 id="dev-name" class="m-0 mb-1 text-title font-semibold">—</h2>
+          <p class="mt-1 mb-0 text-muted text-body flex flex-wrap gap-x-[18px] gap-y-1 items-center" id="dev-data"></p>
         </header>
-        <div class="rangebar" role="group" aria-label="Intervallo temporale">
-          <button type="button" data-range="24h">24h</button>
-          <button type="button" data-range="7d">7g</button>
-          <button type="button" data-range="30d">30g</button>
+        <div id="rangebar" class="flex gap-1.5 mb-2.5" role="group" aria-label="Intervallo temporale">
+          <button type="button" data-range="24h" aria-pressed="true" class="bg-panel border border-line text-muted font-mono text-body px-3 py-1 cursor-pointer hover:border-muted hover:text-ink aria-[pressed=true]:text-ink aria-[pressed=true]:border-warn aria-[pressed=true]:bg-hover">24h</button>
+          <button type="button" data-range="7d" aria-pressed="false" class="bg-panel border border-line text-muted font-mono text-body px-3 py-1 cursor-pointer hover:border-muted hover:text-ink aria-[pressed=true]:text-ink aria-[pressed=true]:border-warn aria-[pressed=true]:bg-hover">7g</button>
+          <button type="button" data-range="30d" aria-pressed="false" class="bg-panel border border-line text-muted font-mono text-body px-3 py-1 cursor-pointer hover:border-muted hover:text-ink aria-[pressed=true]:text-ink aria-[pressed=true]:border-warn aria-[pressed=true]:bg-hover">30g</button>
         </div>
-        <div class="panel chartpanel">
-          <p id="chart-empty" class="empty" hidden>Ancora nessun campione raccolto per questo dispositivo</p>
-          <div class="chartwrap"><canvas id="chart" role="img" aria-label="Grafico andamento LQI"></canvas></div>
+        <div class="bg-panel border border-line p-[14px] mb-1">
+          <p id="chart-empty" class="m-0 text-muted text-body" hidden>Ancora nessun campione raccolto per questo dispositivo</p>
+          <div id="chart-wrap" class="relative h-[340px] max-[720px]:h-[260px]"><canvas id="chart" role="img" aria-label="Grafico andamento LQI"></canvas></div>
         </div>
-        <h3 class="sect">Eventi recenti</h3>
-        <ul class="events" id="dev-events"></ul>
+        <h3 class="mt-[22px] mb-2 text-section font-semibold text-ink">Eventi recenti</h3>
+        <ul class="list-none m-0 p-0 border border-line" id="dev-events"></ul>
       </section>
 
-      <section id="view-map" class="view" hidden>
-        <h2>Mappa di rete</h2>
-        <p class="snapts">Snapshot: <span class="mono" id="map-ts">—</span></p>
-        <p id="map-msg" class="mapmsg" hidden></p>
-        <div class="panel mappanel">
-          <p id="map-empty" class="empty" hidden>Nessuno snapshot disponibile. Usare il pulsante sottostante per richiederne uno (operazione rara e lenta).</p>
+      <section id="view-map" hidden>
+        <h2 class="m-0 mb-1 text-title font-semibold">Mappa di rete</h2>
+        <p class="mt-0.5 mb-3 text-muted text-body">Snapshot: <span class="font-mono text-ink" id="map-ts">—</span></p>
+        <p id="map-msg" class="mt-0 mb-2.5 px-3 py-2 border border-line border-l-2 border-l-warn bg-panel text-ink text-label" hidden></p>
+        <div class="bg-panel border border-line p-2">
+          <p id="map-empty" class="m-0 text-muted text-body" hidden>Nessuno snapshot disponibile. Usare il pulsante sottostante per richiederne uno (operazione rara e lenta).</p>
           <div id="map-svg"></div>
         </div>
-        <div class="maplegend" aria-hidden="true">
-          <span><i class="lg lg-ok"></i>LQI ≥ 120</span>
-          <span><i class="lg lg-warn"></i>60–119</span>
-          <span><i class="lg lg-crit"></i>&lt; 60</span>
+        <div class="flex gap-[18px] mt-2.5 mb-3.5 text-muted text-label" aria-hidden="true">
+          <span class="inline-flex items-center gap-1.5"><i class="inline-block w-[18px] h-0 border-t-[3px] rounded-sm border-ok"></i>LQI ≥ 120</span>
+          <span class="inline-flex items-center gap-1.5"><i class="inline-block w-[18px] h-0 border-t-[3px] rounded-sm border-warn"></i>60–119</span>
+          <span class="inline-flex items-center gap-1.5"><i class="inline-block w-[18px] h-0 border-t-[3px] rounded-sm border-crit"></i>&lt; 60</span>
         </div>
-        <button type="button" id="map-refresh">Aggiorna mappa (operazione lenta, max 1/ora)</button>
+        <button type="button" id="map-refresh" class="mt-0.5">Aggiorna mappa (operazione lenta, max 1/ora)</button>
       </section>
 
-      <section id="view-events" class="view" hidden>
-        <h2>Eventi</h2>
-        <form class="filters" id="ev-filters">
-          <label>Tipo
-            <select id="ev-type">
+      <section id="view-events" hidden>
+        <h2 class="m-0 mb-1 text-title font-semibold">Eventi</h2>
+        <form class="flex gap-4 mt-2.5 mb-3 text-muted text-label" id="ev-filters">
+          <label class="flex items-center gap-2">Tipo
+            <select id="ev-type" class="px-2 py-1">
               <option value="">Tutti i tipi</option>
               <option value="route_failure">Guasto route</option>
               <option value="delivery_failure">Consegna fallita</option>
@@ -107,8 +105,8 @@
               <option value="other">Altro</option>
             </select>
           </label>
-          <label>Periodo
-            <select id="ev-since">
+          <label class="flex items-center gap-2">Periodo
+            <select id="ev-since" class="px-2 py-1">
               <option value="24h">Ultime 24 ore</option>
               <option value="7d">Ultimi 7 giorni</option>
               <option value="30d">Ultimi 30 giorni</option>
@@ -116,8 +114,8 @@
             </select>
           </label>
         </form>
-        <ul class="events" id="ev-list"></ul>
-        <p id="ev-empty" class="empty" hidden>Nessun evento nel periodo selezionato.</p>
+        <ul class="list-none m-0 p-0 border border-line" id="ev-list"></ul>
+        <p id="ev-empty" class="m-0 text-muted text-body" hidden>Nessun evento nel periodo selezionato.</p>
       </section>
     </main>
   </div>

@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@source "../../public/**/*.{html,js}";
+
+@theme {
+  --color-base:    #14171A;
+  --color-panel:   #1C2024;
+  --color-line:    #2A2F35;
+  --color-ink:     #E4E7EA;
+  --color-muted:   #8B939B;
+  --color-ok:      #4FB477;
+  --color-warn:    #D9A441;
+  --color-crit:    #C1533E;
+  --color-hover:   #22262B;
+  --color-version: #20242A;
+
+  --font-sans: 'IBM Plex Sans', -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+
+  --text-title:   15px;
+  --text-section: 13px;
+  --text-body:    13px;
+  --text-label:   11px;
+}
+
+@layer base {
+  body { @apply bg-base text-ink font-sans text-body; line-height: 1.45; }
+  button, select {
+    @apply font-sans text-body bg-panel border border-line text-ink py-1.5 px-3.5 cursor-pointer;
+  }
+  button:hover:not(:disabled) { @apply border-muted; }
+  button:disabled { @apply text-muted cursor-not-allowed; }
+  :focus-visible { outline: 2px solid var(--color-warn); outline-offset: 2px; }
+}

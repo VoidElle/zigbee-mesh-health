@@ -64,6 +64,16 @@ npm start   # or: node dist/index.js
 
 Point `MQTT_HOST`/`MQTT_PORT` at your broker (Zigbee2MQTT must be publishing to it), then open http://localhost:8080.
 
+### Development
+
+Design tokens/theme/base live in `src/styles/tailwind.css`; utility classes go in `public/index.html` and `public/app.js`. After editing either, regenerate the served stylesheet:
+
+```bash
+npm run css        # or: npm run css:watch
+```
+
+`public/styles.css` is generated and committed — include the regenerated file in your commit.
+
 ## Docker
 
 ```bash

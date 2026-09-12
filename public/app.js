@@ -99,6 +99,9 @@ async function api(path, opts) {
 const el = (id) => document.getElementById(id);
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const dotCls = (s) =>
+  'inline-block w-2 h-2 rounded-full flex-none ' +
+  ({ ok: 'bg-ok', warning: 'bg-warn', critical: 'bg-crit' }[s] || 'bg-muted');
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 const fmtDateTime = (ts) => new Date(ts).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 const fmtFull = (ts) => new Date(ts).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -141,14 +144,14 @@ function renderSidebar() {
   list.innerHTML = devs.length
     ? devs
         .map(
-          (d) => `<a class="dev${state.selected === d.name ? ' active' : ''}" href="#/device/${encodeURIComponent(d.name)}"${state.selected === d.name ? ' aria-current="page"' : ''} aria-label="${esc(d.name)}, LQI ${d.currentLqi}, ${STATUS_IT[d.status]}">
-  <span class="dot dot-${d.status}"></span>
-  <span class="dev-name" title="${esc(d.name)}">${esc(d.name)}</span>
-  <span class="dev-lqi">${d.currentLqi}</span>
+          (d) => `<a class="grid grid-cols-[14px_1fr_auto] items-center gap-1 px-[14px] py-[7px] text-ink no-underline border-l-2 border-l-transparent hover:bg-hover aria-[current=page]:bg-hover aria-[current=page]:border-l-warn" href="#/device/${encodeURIComponent(d.name)}"${state.selected === d.name ? ' aria-current="page"' : ''} aria-label="${esc(d.name)}, LQI ${d.currentLqi}, ${STATUS_IT[d.status]}">
+  <span class="${dotCls(d.status)}"></span>
+  <span class="text-section font-medium truncate" title="${esc(d.name)}">${esc(d.name)}</span>
+  <span class="font-mono text-muted text-body">${d.currentLqi}</span>
 </a>`
         )
         .join('')
-    : '<p class="devlist-empty">Nessun dispositivo. In attesa di dati da Zigbee2MQTT…</p>';
+    : '<p class="p-[14px] text-muted text-label">Nessun dispositivo. In attesa di dati da Zigbee2MQTT…</p>';
   list.scrollTop = top;
 }
 
@@ -157,12 +160,12 @@ function renderHealth() {
   const text = el('health-text');
   const sub = el('health-sample');
   if (!state.health) {
-    dot.className = 'dot dot-muted';
+    dot.className = dotCls('muted');
     text.textContent = 'Servizio non raggiungibile';
     sub.hidden = true;
     return;
   }
-  dot.className = 'dot ' + (state.health.mqttConnected ? 'dot-ok' : 'dot-critical');
+  dot.className = dotCls(state.health.mqttConnected ? 'ok' : 'critical');
   text.textContent = state.health.mqttConnected ? 'MQTT collegato' : 'MQTT non collegato';
   sub.hidden = false;
   sub.textContent = state.health.lastSampleAt
@@ -175,13 +178,13 @@ function renderDevHeader() {
   const d = state.devices.find((x) => x.name === state.selected);
   el('dev-name').textContent = state.selected || '—';
   el('dev-data').innerHTML = d
-    ? `<span><span class="lab">LQI attuale </span><span class="val">${d.currentLqi}</span></span>
-<span><span class="lab">stato </span><span class="dot dot-${d.status}"></span> ${STATUS_IT[d.status]}</span>
-<span><span class="lab">media 24h </span><span class="val">${d.avg24h != null ? Math.round(d.avg24h) : '—'}</span></span>
-<span><span class="lab">media 7g </span><span class="val">${d.avg7d != null ? Math.round(d.avg7d) : '—'}</span></span>
-<span><span class="lab">guasti 24h </span><span class="val">${d.failures24h}</span></span>
-<span><span class="lab">ultimo msg </span><span class="val">${d.lastSeen ? fmtFull(d.lastSeen) : '—'}</span></span>
-<span><span class="lab">IEEE </span><span class="val">${d.ieee ? esc(d.ieee) : '—'}</span></span>`
+    ? `<span><span class="text-label">LQI attuale </span><span class="font-mono text-ink">${d.currentLqi}</span></span>
+<span><span class="text-label">stato </span><span class="${dotCls(d.status)}"></span> ${STATUS_IT[d.status]}</span>
+<span><span class="text-label">media 24h </span><span class="font-mono text-ink">${d.avg24h != null ? Math.round(d.avg24h) : '—'}</span></span>
+<span><span class="text-label">media 7g </span><span class="font-mono text-ink">${d.avg7d != null ? Math.round(d.avg7d) : '—'}</span></span>
+<span><span class="text-label">guasti 24h </span><span class="font-mono text-ink">${d.failures24h}</span></span>
+<span><span class="text-label">ultimo msg </span><span class="font-mono text-ink">${d.lastSeen ? fmtFull(d.lastSeen) : '—'}</span></span>
+<span><span class="text-label">IEEE </span><span class="font-mono text-ink">${d.ieee ? esc(d.ieee) : '—'}</span></span>`
     : '<span>Dispositivo non presente nei dati attuali</span>';
 }
 
@@ -207,7 +210,7 @@ function statusColorLqi(lqi, warn) {
 function showChartEmpty(msg) {
   el('chart-empty').textContent = msg;
   el('chart-empty').hidden = false;
-  document.querySelector('.chartwrap').classList.add('has-empty');
+  el('chart-wrap').classList.add('hidden');
 }
 
 // Light colored band under warning/critical thresholds (spec §8.4)
@@ -261,7 +264,7 @@ function applyChartDefaults() {
 
 function createChart() {
   if (typeof Chart === 'undefined') {
-    showChartEmpty('Chart.js non caricato (CDN non raggiungibile o offline)');
+    showChartEmpty('Chart.js non caricato');
     return null;
   }
   applyChartDefaults();
@@ -333,7 +336,7 @@ async function loadHistory() {
     return;
   }
   el('chart-empty').hidden = true;
-  document.querySelector('.chartwrap').classList.remove('has-empty');
+  el('chart-wrap').classList.remove('hidden');
   if (!chart) chart = createChart();
   if (!chart) return;
   const now = Date.now();
@@ -347,11 +350,13 @@ async function loadHistory() {
 
 /* ===== Events ===== */
 function eventRow(e) {
-  return `<li class="ev${e.event_type === 'version_change' ? ' ev-version' : ''}">
-  <span class="ev-ts">${fmtDateTime(e.ts)}</span>
-  <span class="ev-type">${EVENT_IT[e.event_type] || esc(e.event_type)}</span>
-  <span class="ev-dev">${e.device_name ? esc(e.device_name) : '—'}</span>
-  <span class="ev-msg">${e.message ? esc(e.message) : ''}</span>
+  const base =
+    'grid grid-cols-[132px_148px_minmax(110px,0.35fr)_1fr] gap-2.5 px-3 py-[7px] border-b border-line bg-panel min-w-0 last:border-b-0 max-[720px]:grid-cols-[108px_1fr] max-[720px]:grid-rows-[auto_auto]';
+  return `<li class="${base}${e.event_type === 'version_change' ? ' border-l-2 border-l-warn bg-version' : ''}">
+  <span class="font-mono text-muted text-label">${fmtDateTime(e.ts)}</span>
+  <span class="text-ink text-label">${EVENT_IT[e.event_type] || esc(e.event_type)}</span>
+  <span class="text-muted text-label truncate">${e.device_name ? esc(e.device_name) : '—'}</span>
+  <span class="text-ink text-label [overflow-wrap:anywhere]">${e.message ? esc(e.message) : ''}</span>
 </li>`;
 }
 
@@ -363,9 +368,9 @@ async function loadDeviceEvents(name) {
     const rows = (d.events || []).filter((e) => e.device_name === name).slice(0, 30);
     ul.innerHTML = rows.length
       ? rows.map(eventRow).join('')
-      : '<li class="ev ev-none">Nessun evento recente per questo dispositivo.</li>';
+      : '<li class="grid grid-cols-1 text-muted px-3 py-[7px] border-b border-line bg-panel">Nessun evento recente per questo dispositivo.</li>';
   } catch {
-    ul.innerHTML = '<li class="ev ev-none">Eventi non disponibili.</li>';
+    ul.innerHTML = '<li class="grid grid-cols-1 text-muted px-3 py-[7px] border-b border-line bg-panel">Eventi non disponibili.</li>';
   }
 }
 
@@ -453,7 +458,7 @@ function buildMapSvg(value) {
 <text x="${p.x.toFixed(1)}" y="${(p.y + r + 14).toFixed(1)}" text-anchor="middle" fill="${mono ? '#8B939B' : '#E4E7EA'}" font-size="${mono ? 9.5 : 10.5}" font-family="${mono ? "'IBM Plex Mono', Menlo, monospace" : "'IBM Plex Sans', sans-serif"}">${esc(label)}</text>`;
   }
 
-  return `<svg viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mappa della rete Zigbee">${edges}${nodeSvg}</svg>`;
+  return `<svg class="block w-full h-auto" viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mappa della rete Zigbee">${edges}${nodeSvg}</svg>`;
 }
 
 async function loadMap() {
@@ -500,12 +505,12 @@ function renderHomeStats() {
   const avgLqi = ds.length ? Math.round(ds.reduce((a, d) => a + d.currentLqi, 0) / ds.length) : null;
   const fails = ds.reduce((a, d) => a + (d.failures24h || 0), 0);
   el('hm-stats').innerHTML = `
-    <div class="stat"><span class="n">${ds.length}</span><span class="l">Dispositivi</span></div>
-    <div class="stat"><span class="n c-ok">${n('ok')}</span><span class="l">Ok</span></div>
-    <div class="stat"><span class="n c-warn">${n('warning')}</span><span class="l">Attenzione</span></div>
-    <div class="stat"><span class="n c-crit">${n('critical')}</span><span class="l">Critici</span></div>
-    <div class="stat"><span class="n" style="color:${statusColorLqi(avgLqi ?? 0, null)}">${avgLqi != null ? avgLqi : '—'}</span><span class="l">LQI medio</span></div>
-    <div class="stat"><span class="n${fails > 0 ? ' c-crit' : ''}">${fails}</span><span class="l">Guasti 24h</span></div>`;
+    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]">${ds.length}</span><span class="text-label text-muted">Dispositivi</span></div>
+    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-ok">${n('ok')}</span><span class="text-label text-muted">Ok</span></div>
+    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-warn">${n('warning')}</span><span class="text-label text-muted">Attenzione</span></div>
+    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-crit">${n('critical')}</span><span class="text-label text-muted">Critici</span></div>
+    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]" style="color:${statusColorLqi(avgLqi ?? 0, null)}">${avgLqi != null ? avgLqi : '—'}</span><span class="text-label text-muted">LQI medio</span></div>
+    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]${fails > 0 ? ' text-crit' : ''}">${fails}</span><span class="text-label text-muted">Guasti 24h</span></div>`;
   el('home-empty').hidden = ds.length > 0;
 }
 
@@ -515,10 +520,10 @@ function renderHomeWatch() {
     .sort((a, b) => RANK[a.status] - RANK[b.status] || a.name.localeCompare(b.name));
   el('hm-watch').innerHTML = bad
     .map(
-      (d) => `<li><a class="hmrow" href="#/device/${encodeURIComponent(d.name)}">
-  <span class="dot dot-${d.status}"></span>
-  <span class="hmname">${esc(d.name)}</span>
-  <span class="mono hmsub">LQI ${d.currentLqi} · media 24h ${d.avg24h != null ? Math.round(d.avg24h) : '—'} · media 7g ${d.avg7d != null ? Math.round(d.avg7d) : '—'} · guasti 24h ${d.failures24h}</span>
+      (d) => `<li><a class="flex items-center flex-wrap gap-x-2.5 gap-y-1.5 px-3 py-[7px] border-b border-line bg-panel text-ink no-underline min-w-0 last:border-b-0 hover:bg-hover" href="#/device/${encodeURIComponent(d.name)}">
+  <span class="${dotCls(d.status)}"></span>
+  <span class="font-medium truncate">${esc(d.name)}</span>
+  <span class="font-mono text-muted text-label">LQI ${d.currentLqi} · media 24h ${d.avg24h != null ? Math.round(d.avg24h) : '—'} · media 7g ${d.avg7d != null ? Math.round(d.avg7d) : '—'} · guasti 24h ${d.failures24h}</span>
 </a></li>`
     )
     .join('');
@@ -535,10 +540,10 @@ function renderHomeStale() {
     .sort((a, b) => String(a.lastSeen).localeCompare(String(b.lastSeen)));
   el('hm-stale').innerHTML = stale
     .map(
-      (d) => `<li><a class="hmrow" href="#/device/${encodeURIComponent(d.name)}">
-  <span class="dot dot-muted"></span>
-  <span class="hmname">${esc(d.name)}</span>
-  <span class="mono hmsub">ultimo msg ${d.lastSeen ? fmtFull(d.lastSeen) : 'mai'}</span>
+      (d) => `<li><a class="flex items-center flex-wrap gap-x-2.5 gap-y-1.5 px-3 py-[7px] border-b border-line bg-panel text-ink no-underline min-w-0 last:border-b-0 hover:bg-hover" href="#/device/${encodeURIComponent(d.name)}">
+  <span class="${dotCls('muted')}"></span>
+  <span class="font-medium truncate">${esc(d.name)}</span>
+  <span class="font-mono text-muted text-label">ultimo msg ${d.lastSeen ? fmtFull(d.lastSeen) : 'mai'}</span>
 </a></li>`
     )
     .join('');
@@ -556,9 +561,9 @@ async function loadHomeEvents() {
     for (const e of rows) counts[e.event_type] = (counts[e.event_type] || 0) + 1;
     el('hm-chips').innerHTML = Object.keys(counts).length
       ? Object.entries(counts)
-          .map(([t, c]) => `<span class="chip"><span class="n">${c}</span>${EVENT_IT[t] || esc(t)}</span>`)
+          .map(([t, c]) => `<span class="inline-flex items-center gap-[7px] border border-line bg-panel px-2.5 py-1 text-label text-muted"><span class="font-mono text-ink">${c}</span>${EVENT_IT[t] || esc(t)}</span>`)
           .join('')
-      : '<span class="chip"><span class="n">0</span>eventi</span>';
+      : '<span class="inline-flex items-center gap-[7px] border border-line bg-panel px-2.5 py-1 text-label text-muted"><span class="font-mono text-ink">0</span>eventi</span>';
   } catch {
     el('hm-ev-empty').hidden = false;
     el('hm-chips').innerHTML = '';
@@ -593,7 +598,7 @@ function renderHomeNet() {
     (weakest.length
       ? '<br>link più deboli:<br>' +
         weakest
-          .map((l) => `<span class="mono">${esc(nm(l.sourceIeee))} → ${esc(nm(l.targetIeee))} · LQI ${Number(l.lqi) || 0}</span>`)
+          .map((l) => `<span class="font-mono text-ink">${esc(nm(l.sourceIeee))} → ${esc(nm(l.targetIeee))} · LQI ${Number(l.lqi) || 0}</span>`)
           .join('<br>')
       : '');
 }
@@ -601,7 +606,7 @@ function renderHomeNet() {
 async function loadHomeSnapshot() {
   try {
     state.snap = await api('/api/network/latest');
-    el('hm-snap').innerHTML = `Snapshot: <span class="mono">${fmtFull(state.snap.ts)}</span> — <a href="#/map">vedi</a>`;
+    el('hm-snap').innerHTML = `Snapshot: <span class="font-mono text-ink">${fmtFull(state.snap.ts)}</span> — <a href="#/map" class="text-ink">vedi</a>`;
   } catch {
     state.snap = null;
     el('hm-snap').textContent = 'Nessuna mappa di rete ancora (scansione giornaliera o manuale dalla vista Mappa).';
@@ -610,30 +615,30 @@ async function loadHomeSnapshot() {
 }
 
 async function loadHomeTrend() {
-  const wrap = document.querySelector('.hmwrap');
+  const wrap = el('hm-chart-wrap');
   const empty = el('hm-chart-empty');
   let data;
   try {
     data = await api('/api/mesh/history?range=24h');
   } catch {
     empty.hidden = false;
-    wrap.classList.add('has-empty');
+    wrap.classList.add('hidden');
     return;
   }
   const pts = (data.points || []).map((p) => ({ x: +new Date(p.ts), y: p.lqi }));
   if (!pts.length) {
     empty.hidden = false;
-    wrap.classList.add('has-empty');
+    wrap.classList.add('hidden');
     return;
   }
   if (typeof Chart === 'undefined') {
-    empty.textContent = 'Chart.js non caricato (CDN non raggiungibile o offline)';
+    empty.textContent = 'Chart.js non caricato';
     empty.hidden = false;
-    wrap.classList.add('has-empty');
+    wrap.classList.add('hidden');
     return;
   }
   empty.hidden = true;
-  wrap.classList.remove('has-empty');
+  wrap.classList.remove('hidden');
   if (!hmChart) {
     applyChartDefaults();
     hmChart = new Chart(el('hm-chart').getContext('2d'), {
@@ -693,8 +698,10 @@ function onRoute() {
   const r = route();
   for (const id of Object.values(VIEWS)) el(id).hidden = true;
   el(VIEWS[r.view]).hidden = false;
-  el('nav-map').classList.toggle('active', r.view === 'map');
-  el('nav-events').classList.toggle('active', r.view === 'events');
+  if (r.view === 'map') el('nav-map').setAttribute('aria-current', 'page');
+  else el('nav-map').removeAttribute('aria-current');
+  if (r.view === 'events') el('nav-events').setAttribute('aria-current', 'page');
+  else el('nav-events').removeAttribute('aria-current');
   if (r.view === 'device') {
     renderDeviceDetail(r.name);
   } else if (r.view === 'map') {
@@ -733,12 +740,12 @@ async function poll() {
 }
 
 function init() {
-  document.querySelector('.rangebar button[data-range="24h"]').classList.add('active');
-  document.querySelector('.rangebar').addEventListener('click', (e) => {
+  el('rangebar').querySelector('button[data-range="24h"]').setAttribute('aria-pressed', 'true');
+  el('rangebar').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-range]');
     if (!b) return;
     state.range = b.dataset.range;
-    document.querySelectorAll('.rangebar button').forEach((x) => x.classList.toggle('active', x === b));
+    el('rangebar').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
     void loadHistory();
   });
   el('ev-filters').addEventListener('submit', (e) => e.preventDefault());
