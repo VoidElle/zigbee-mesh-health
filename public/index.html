@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mesh Health</title>
   <link rel="stylesheet" href="styles.css">
-  <script src="vendor/chart.umd.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.js"
+          integrity="sha384-85f92eaab29e5859a74cc58ddf5556ca87bcc607530030f5d6483199da71daec84ea3e40cf9b99ababba00a6189803b0"
+          crossorigin="anonymous" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -83,6 +85,7 @@
               <option value="device_leave">Uscita dispositivo</option>
               <option value="bridge_restart">Restart bridge</option>
               <option value="version_change">Cambio versione</option>
+              <option value="state_change">Cambio stato</option>
               <option value="other">Altro</option>
             </select>
           </label>

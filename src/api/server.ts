@@ -17,6 +17,7 @@ const EVENT_TYPES: EventType[] = [
   'device_leave',
   'bridge_restart',
   'version_change',
+  'state_change',
   'other',
 ];
 

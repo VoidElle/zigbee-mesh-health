@@ -7,6 +7,7 @@ process.env.DATA_DIR = mkdtempSync(join(tmpdir(), 'mh-events-test-'));
 
 const { classifyLogging, extractDeviceName, handleLogging, handleBridgeEvent, handleInfo } =
   await import('../dist/mqtt/eventCollector.js');
+const { handleDeviceMessage } = await import('../dist/mqtt/lqiCollector.js');
 const { listEvents } = await import('../dist/storage/events.js');
 
 const assert = (cond, msg) => {
@@ -62,5 +63,19 @@ assert(count('other') === 2, 'same version silent');
 handleInfo(buf({ version: '1.41.0' }));
 const vc = listEvents({ type: 'version_change' });
 assert(vc.length === 1 && vc[0].message.includes('1.40.0'), 'version change logged');
+
+// handleDeviceMessage: state-change history on device topics
+const dev = (o) => Buffer.from(JSON.stringify(o)).toString();
+handleDeviceMessage('zigbee2mqtt/Luce', dev({ state: 'ON', linkquality: 100 }));
+assert(count('state_change') === 0, 'first sight is baseline, no event');
+handleDeviceMessage('zigbee2mqtt/Luce', dev({ state: 'ON', linkquality: 100 }));
+assert(count('state_change') === 0, 'unchanged state no event');
+handleDeviceMessage('zigbee2mqtt/Luce', dev({ state: 'OFF', linkquality: 90 }));
+const sc = listEvents({ type: 'state_change' });
+assert(sc.length === 1 && sc[0].device_name === 'Luce' && sc[0].message === 'state: ON → OFF', 'transition logged');
+handleDeviceMessage('zigbee2mqtt/bridge/state', dev({ state: 'online' }));
+assert(count('state_change') === 1, 'bridge/# must not produce state events');
+handleDeviceMessage('zigbee2mqtt/Sensore', dev({ temperature: 21 }));
+assert(count('state_change') === 1, 'payload without state ignored');
 
 console.log('events.test OK');

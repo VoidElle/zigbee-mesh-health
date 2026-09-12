@@ -6,6 +6,7 @@ export type EventType =
   | 'device_leave'
   | 'bridge_restart'
   | 'version_change'
+  | 'state_change'
   | 'other';
 
 export function insertEvent(type: EventType, device: string | null, message: string): void {

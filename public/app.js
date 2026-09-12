@@ -58,6 +58,7 @@ function mockApi(path, opts) {
       { ts: iso(now - 108e5), event_type: 'version_change', device_name: null, message: 'Zigbee2MQTT aggiornato: 1.42.0 -> 2.1.0' },
       { ts: iso(now - 126e5), event_type: 'delivery_failure', device_name: 'Soggiorno - Porta', message: 'Publish to device failed: timeout' },
       { ts: iso(now - 1728e5), event_type: 'bridge_restart', device_name: null, message: 'Zigbee2MQTT started' },
+      { ts: iso(now - 2160e5), event_type: 'state_change', device_name: 'Soggiorno - Porta', message: 'state: OFF → ON' },
       { ts: iso(now - 2592e5), event_type: 'device_leave', device_name: 'Cucina - Sensore', message: 'Device left the network' },
     ];
     if (q.get('type')) evs = evs.filter((e) => e.event_type === q.get('type'));
@@ -103,6 +104,7 @@ const EVENT_IT = {
   device_leave: 'Uscita dispositivo',
   bridge_restart: 'Restart bridge',
   version_change: 'Cambio versione',
+  state_change: 'Cambio stato',
   other: 'Altro',
 };
 
@@ -240,7 +242,7 @@ function fmtTick(v) {
 
 function createChart() {
   if (typeof Chart === 'undefined') {
-    showChartEmpty('Chart.js non caricato (vendor/chart.umd.js mancante)');
+    showChartEmpty('Chart.js non caricato (CDN non raggiungibile o offline)');
     return null;
   }
   Chart.defaults.color = '#8B939B';
