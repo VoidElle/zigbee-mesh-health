@@ -17,7 +17,7 @@ The full product spec lives in `/instruction.md` (repo root). Every sub-agent MU
 - [x] [04 — Analysis: moving averages + device status](./04-analysis.md)
 - [x] [05 — Express API + app wiring](./05-api.md)
 - [x] [06 — Frontend: 4 views + design tokens](./06-frontend.md)
-- [ ] [07 — Docker + README + final verification](./07-deploy-readme-verify.md)
+- [x] [07 — Docker + README + final verification](./07-deploy-readme-verify.md)
 
 ## Dependency graph
 

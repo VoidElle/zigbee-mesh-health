@@ -1,0 +1,15 @@
+services:
+  mesh-health:
+    build: .
+    ports: ["8080:8080"]
+    volumes: ["./data:/app/data"]
+    environment:
+      MQTT_HOST: localhost
+      MQTT_PORT: "1883"
+      Z2M_BASE_TOPIC: zigbee2mqtt
+      NETWORKMAP_SCHEDULE: "04:00"
+      LQI_WARNING_THRESHOLD_PCT: "20"
+      LQI_CRITICAL_ABSOLUTE: "50"
+      ROUTE_FAILURE_CRITICAL_COUNT: "5"
+      RETENTION_DAYS: "30"
+      # MQTT_USERNAME, MQTT_PASSWORD, API_KEY optional
