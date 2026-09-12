@@ -1,0 +1,25 @@
+{
+  "status": 200,
+  "body": {
+    "ts": "TS",
+    "value": {
+      "nodes": [
+        {
+          "ieeeAddr": "0x00158d0001a2b3c4",
+          "type": "EndDevice"
+        },
+        {
+          "ieeeAddr": "0x00124b0000000001",
+          "type": "Coordinator"
+        }
+      ],
+      "links": [
+        {
+          "source": "0x00124b0000000001",
+          "target": "0x00158d0001a2b3c4",
+          "lqi": 120
+        }
+      ]
+    }
+  }
+}

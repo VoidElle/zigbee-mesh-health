@@ -7,7 +7,7 @@ import * as cron from 'node-cron';
 import { getClient } from '../mqtt/client';
 import { config } from '../config';
 import { runtimeStatus } from '../runtime';
-import { insertSnapshot } from '../storage/snapshots';
+import { insertSnapshot } from '../db/repositories/snapshots';
 
 const requestTopic = `${config.baseTopic}/bridge/request/networkmap`;
 const responseTopic = `${config.baseTopic}/bridge/response/networkmap`;
@@ -19,7 +19,7 @@ let schedulerStarted = false;
 let subscribed = false;
 let inFlight: Promise<MapResult> | null = null;
 let lastManualAt: number | null = null;
-let pendingResolve: ((payload: string) => void) | null = null;
+let pendingResolve: ((payload: string) => void | Promise<void>) | null = null;
 
 function ensureSubscribed(): void {
   if (subscribed) return; // subscribe once, at init of the first request/scheduler
@@ -31,7 +31,7 @@ function ensureSubscribed(): void {
     const resolve = pendingResolve;
     if (!resolve) return; // stale reply from an already-timed-out request — drop it
     pendingResolve = null;
-    resolve(payload.toString());
+    void resolve(payload.toString());
   });
 }
 
@@ -52,7 +52,7 @@ function doRequest(): Promise<MapResult> {
       finish({ ok: false, error: 'timeout' });
     }, config.networkmapTimeoutMs);
 
-    pendingResolve = (payload) => {
+    pendingResolve = async (payload) => {
       let parsed: unknown;
       try {
         parsed = JSON.parse(payload);
@@ -66,7 +66,7 @@ function doRequest(): Promise<MapResult> {
         finish({ ok: false, error: 'bridge_error' });
         return;
       }
-      insertSnapshot(JSON.stringify(parsed));
+      await insertSnapshot(JSON.stringify(parsed));
       runtimeStatus.lastSnapshotAt = new Date();
       console.log('[networkmap] snapshot saved');
       finish({ ok: true });

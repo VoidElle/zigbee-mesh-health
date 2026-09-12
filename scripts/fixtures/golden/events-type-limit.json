@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "body": {
+    "events": [
+      {
+        "id": 1,
+        "ts": "TS",
+        "event_type": "route_failure",
+        "device_name": "Plug",
+        "message": "no network route"
+      },
+      {
+        "id": 2,
+        "ts": "TS",
+        "event_type": "route_failure",
+        "device_name": "Plug",
+        "message": "Failed to route message"
+      }
+    ]
+  }
+}

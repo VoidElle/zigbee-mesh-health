@@ -1,0 +1,91 @@
+{
+  "status": 200,
+  "body": {
+    "events": [
+      {
+        "id": 11,
+        "ts": "TS",
+        "event_type": "state_change",
+        "device_name": "Luce",
+        "message": "state: ON -> OFF"
+      },
+      {
+        "id": 1,
+        "ts": "TS",
+        "event_type": "route_failure",
+        "device_name": "Plug",
+        "message": "no network route"
+      },
+      {
+        "id": 5,
+        "ts": "TS",
+        "event_type": "delivery_failure",
+        "device_name": "Sensore",
+        "message": "Failed to publish MQTT message"
+      },
+      {
+        "id": 2,
+        "ts": "TS",
+        "event_type": "route_failure",
+        "device_name": "Plug",
+        "message": "Failed to route message"
+      },
+      {
+        "id": 7,
+        "ts": "TS",
+        "event_type": "device_leave",
+        "device_name": "Luce",
+        "message": "Device 'Luce' left the network"
+      },
+      {
+        "id": 4,
+        "ts": "TS",
+        "event_type": "route_failure",
+        "device_name": "Luce",
+        "message": "no network route"
+      },
+      {
+        "id": 6,
+        "ts": "TS",
+        "event_type": "delivery_failure",
+        "device_name": "Luce",
+        "message": "Failed to publish MQTT message"
+      },
+      {
+        "id": 9,
+        "ts": "TS",
+        "event_type": "bridge_restart",
+        "device_name": null,
+        "message": "Starting Zigbee2MQTT"
+      },
+      {
+        "id": 10,
+        "ts": "TS",
+        "event_type": "version_change",
+        "device_name": null,
+        "message": "z2m 1.40.0 -> 1.41.0"
+      },
+      {
+        "id": 3,
+        "ts": "TS",
+        "event_type": "route_failure",
+        "device_name": "Plug",
+        "message": "no network route"
+      },
+      {
+        "id": 8,
+        "ts": "TS",
+        "event_type": "device_leave",
+        "device_name": "Sensore",
+        "message": "Device 'Sensore' left the network"
+      },
+      {
+        "id": 12,
+        "ts": "TS",
+        "event_type": "other",
+        "device_name": "0x0015bc001b10033c",
+        "message": "device_joined"
+      }
+    ]
+  }
+}

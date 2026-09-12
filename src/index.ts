@@ -1,6 +1,6 @@
-import { startBatchWriter, stopBatchWriter } from './storage/samples';
-import { closeDb } from './storage/db';
-import { startRetentionJob } from './storage/retention';
+import { startBatchWriter, stopBatchWriter } from './db/repositories/samples';
+import { closePrisma } from './db/client';
+import { startRetentionJob } from './db/repositories/retention';
 import { startCollectors } from './mqtt';
 import { getClient } from './mqtt/client';
 import { startNetworkmapScheduler } from './networkmap';
@@ -18,11 +18,12 @@ function shutdown(): void {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log('[mesh-health] shutting down');
-  stopBatchWriter(); // flush pending samples
-  getClient().end(false, () => {
-    closeDb();
-    process.exit(0);
-  });
+  void (async () => {
+    await stopBatchWriter(); // flush pending samples
+    getClient().end(false, () => {
+      void closePrisma().finally(() => process.exit(0));
+    });
+  })();
 }
 
 process.on('SIGINT', shutdown);

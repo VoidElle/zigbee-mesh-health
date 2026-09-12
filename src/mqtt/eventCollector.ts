@@ -1,6 +1,7 @@
 import { getClient } from './client';
 import { config } from '../config';
-import { insertEvent, type EventType } from '../storage/events';
+import { insertEvent, type EventType } from '../db/repositories/events';
+import { getValue, setValue, withKeyLock } from '../db/repositories/runtimeState';
 
 // Channel 3 (spec §3.3) — Z2M bridge logging + info ingestion.
 // Subscribes only; never publishes.
@@ -26,10 +27,6 @@ interface BridgeEventPayload {
     ieee_address?: unknown;
   };
 }
-
-// Last-seen versions (in-memory) for change detection on bridge/info.
-let lastZ2mVersion: string | undefined;
-let lastCoordinator: string | undefined;
 
 // Classification heuristic, checked in order (first match wins) so that
 // route vs delivery failures stay separated:
@@ -68,7 +65,7 @@ export function extractDeviceName(message: string): string | null {
   return ieee ? ieee[0] : null;
 }
 
-export function handleLogging(payload: Buffer): void {
+export async function handleLogging(payload: Buffer): Promise<void> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(payload.toString());
@@ -86,12 +83,12 @@ export function handleLogging(payload: Buffer): void {
   const device =
     type === 'device_leave' ? extractDeviceName(obj.message) : null;
   // message = original log line (spec: correlation happens later, raw line kept).
-  insertEvent(type, device, obj.message);
+  await insertEvent(type, device, obj.message);
 }
 
 // bridge/event is published by Z2M for every device lifecycle change
 // (join, leave, announce, interview) — structured JSON, no Z2M config needed.
-export function handleBridgeEvent(payload: Buffer): void {
+export async function handleBridgeEvent(payload: Buffer): Promise<void> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(payload.toString());
@@ -109,10 +106,10 @@ export function handleBridgeEvent(payload: Buffer): void {
         ? data.ieee_address
         : null;
   const type: EventType = obj.type === 'device_leave' ? 'device_leave' : 'other';
-  insertEvent(type, name, `bridge event: ${obj.type}${name ? ` '${name}'` : ''}`);
+  await insertEvent(type, name, `bridge event: ${obj.type}${name ? ` '${name}'` : ''}`);
 }
 
-export function handleInfo(payload: Buffer): void {
+export async function handleInfo(payload: Buffer): Promise<void> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(payload.toString());
@@ -122,20 +119,23 @@ export function handleInfo(payload: Buffer): void {
   if (parsed === null || typeof parsed !== 'object') return;
   const info = parsed as InfoPayload;
 
-  if (typeof info.version === 'string' && info.version !== lastZ2mVersion) {
-    if (lastZ2mVersion === undefined) {
-      // First sight after startup: anchor event so the log is non-empty
-      // on a healthy mesh (changes-only would stay silent forever).
-      insertEvent('other', null, `Z2M bridge online, version ${info.version}`);
-    } else {
-      insertEvent(
-        'version_change',
-        null,
-        `Z2M version changed: ${lastZ2mVersion} → ${info.version}`
-      );
+  await withKeyLock('last_z2m_version', async () => {
+    const last = await getValue('last_z2m_version');
+    if (typeof info.version === 'string' && info.version !== last) {
+      if (last === undefined) {
+        // First sight after startup: anchor event so the log is non-empty
+        // on a healthy mesh (changes-only would stay silent forever).
+        await insertEvent('other', null, `Z2M bridge online, version ${info.version}`);
+      } else {
+        await insertEvent(
+          'version_change',
+          null,
+          `Z2M version changed: ${last} → ${info.version}`
+        );
+      }
+      await setValue('last_z2m_version', info.version);
     }
-    lastZ2mVersion = info.version;
-  }
+  });
 
   // Best-effort coordinator identity: type string, else whole coordinator meta.
   const coord =
@@ -144,15 +144,20 @@ export function handleInfo(payload: Buffer): void {
       : info.coordinator !== undefined
         ? JSON.stringify(info.coordinator)
         : undefined;
-  if (coord !== undefined && coord !== lastCoordinator) {
-    if (lastCoordinator !== undefined) {
-      insertEvent(
-        'version_change',
-        null,
-        `Coordinator changed: ${lastCoordinator} → ${coord}`
-      );
-    }
-    lastCoordinator = coord;
+  if (coord !== undefined) {
+    await withKeyLock('last_coordinator', async () => {
+      const last = await getValue('last_coordinator');
+      if (coord !== last) {
+        if (last !== undefined) {
+          await insertEvent(
+            'version_change',
+            null,
+            `Coordinator changed: ${last} → ${coord}`
+          );
+        }
+        await setValue('last_coordinator', coord);
+      }
+    });
   }
 }
 
@@ -162,8 +167,12 @@ export function startEventCollector(): void {
   client.subscribe(`${config.baseTopic}/bridge/info`);
   client.subscribe(`${config.baseTopic}/bridge/event`);
   client.on('message', (topic, payload) => {
-    if (topic === `${config.baseTopic}/bridge/logging`) handleLogging(payload);
-    else if (topic === `${config.baseTopic}/bridge/info`) handleInfo(payload);
-    else if (topic === `${config.baseTopic}/bridge/event`) handleBridgeEvent(payload);
+    if (topic === `${config.baseTopic}/bridge/logging`) void handleLogging(payload).catch(logHandlerError);
+    else if (topic === `${config.baseTopic}/bridge/info`) void handleInfo(payload).catch(logHandlerError);
+    else if (topic === `${config.baseTopic}/bridge/event`) void handleBridgeEvent(payload).catch(logHandlerError);
   });
+}
+
+function logHandlerError(err: unknown): void {
+  console.error('[mqtt] bridge handler failed', err);
 }

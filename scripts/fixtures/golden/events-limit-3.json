@@ -1,0 +1,28 @@
+{
+  "status": 200,
+  "body": {
+    "events": [
+      {
+        "id": 11,
+        "ts": "TS",
+        "event_type": "state_change",
+        "device_name": "Luce",
+        "message": "state: ON -> OFF"
+      },
+      {
+        "id": 1,
+        "ts": "TS",
+        "event_type": "route_failure",
+        "device_name": "Plug",
+        "message": "no network route"
+      },
+      {
+        "id": 5,
+        "ts": "TS",
+        "event_type": "delivery_failure",
+        "device_name": "Sensore",
+        "message": "Failed to publish MQTT message"
+      }
+    ]
+  }
+}

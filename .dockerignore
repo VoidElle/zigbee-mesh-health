@@ -1,5 +1,7 @@
 node_modules
 dist
+# generated in-image by `prisma generate`; never copy a host-generated client
+src/generated
 data
 .git
 .idea

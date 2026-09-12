@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "body": {
+    "events": [
+      {
+        "id": 7,
+        "ts": "TS",
+        "event_type": "device_leave",
+        "device_name": "Luce",
+        "message": "Device 'Luce' left the network"
+      },
+      {
+        "id": 8,
+        "ts": "TS",
+        "event_type": "device_leave",
+        "device_name": "Sensore",
+        "message": "Device 'Sensore' left the network"
+      }
+    ]
+  }
+}

@@ -3,9 +3,9 @@ import * as path from 'path';
 import { config } from '../config';
 import { runtimeStatus } from '../runtime';
 import { computeDeviceSummaries } from '../analysis/status';
-import { history, listDeviceNames, meshHistory } from '../storage/samples';
-import { listEvents, type EventType } from '../storage/events';
-import { getLatestSnapshot } from '../storage/snapshots';
+import { history, listDeviceNames, meshHistory } from '../db/repositories/samples';
+import { listEvents, type EventType } from '../db/repositories/events';
+import { getLatestSnapshot } from '../db/repositories/snapshots';
 import { triggerManualRefresh } from '../networkmap';
 
 const HOUR = 3600_000;
@@ -50,46 +50,46 @@ export function startApi(): void {
     });
   }
 
-  app.get('/api/devices', (_req, res) => {
-    res.json({ devices: computeDeviceSummaries() });
+  app.get('/api/devices', async (_req, res) => {
+    res.json({ devices: await computeDeviceSummaries() });
   });
 
-  app.get('/api/devices/:name/history', (req, res) => {
+  app.get('/api/devices/:name/history', async (req, res) => {
     const ms = RANGES[queryStr(req, 'range') ?? ''];
     if (!ms) {
       res.status(400).json({ error: 'invalid range' });
       return;
     }
     const name = req.params.name;
-    if (!listDeviceNames().includes(name)) {
+    if (!(await listDeviceNames()).includes(name)) {
       res.status(404).json({ error: 'not found' });
       return;
     }
-    const points = history(name, ms).map((r) => ({ ts: r.ts, lqi: r.lqi }));
+    const points = (await history(name, ms)).map((r) => ({ ts: r.ts, lqi: r.lqi }));
     res.json({ name, range: queryStr(req, 'range'), points });
   });
 
-  app.get('/api/mesh/history', (req, res) => {
+  app.get('/api/mesh/history', async (req, res) => {
     const ms = RANGES[queryStr(req, 'range') ?? ''];
     if (!ms) {
       res.status(400).json({ error: 'invalid range' });
       return;
     }
-    res.json({ range: queryStr(req, 'range'), points: meshHistory(ms) });
+    res.json({ range: queryStr(req, 'range'), points: await meshHistory(ms) });
   });
 
-  app.get('/api/events', (req, res) => {
+  app.get('/api/events', async (req, res) => {
     const type = queryStr(req, 'type');
     const validatedType = type && (EVENT_TYPES as string[]).includes(type) ? (type as EventType) : undefined;
     const limitRaw = parseInt(queryStr(req, 'limit') ?? '', 10);
     const limit = Math.min(Number.isNaN(limitRaw) ? 200 : Math.max(limitRaw, 1), 500);
     res.json({
-      events: listEvents({ type: validatedType, sinceMs: parseSince(queryStr(req, 'since')), limit }),
+      events: await listEvents({ type: validatedType, sinceMs: parseSince(queryStr(req, 'since')), limit }),
     });
   });
 
-  app.get('/api/network/latest', (_req, res) => {
-    const row = getLatestSnapshot();
+  app.get('/api/network/latest', async (_req, res) => {
+    const row = await getLatestSnapshot();
     if (!row) {
       res.status(404).json({ error: 'no snapshot' });
       return;

@@ -5,9 +5,9 @@ import { join } from 'node:path';
 
 process.env.DATA_DIR = mkdtempSync(join(tmpdir(), 'mh-status-test-'));
 
-const { getDb } = await import('../dist/storage/db.js');
+const { getDb } = await import('../dist/db/client.js');
 const { computeDeviceSummaries } = await import('../dist/analysis/status.js');
-const { meshHistory } = await import('../dist/storage/samples.js');
+const { meshHistory } = await import('../dist/db/repositories/samples.js');
 
 const db = getDb();
 const insSample = db.prepare(
@@ -33,7 +33,7 @@ insSample.run('crit-low', '0x3', 40, iso(0));
 insSample.run('crit-fail', '0x4', 200, iso(0));
 for (let i = 0; i < 6; i++) insEvent.run(iso(i * 600_000), 'route_failure', 'crit-fail', 'no route');
 
-const s = Object.fromEntries(computeDeviceSummaries().map((d) => [d.name, d]));
+const s = Object.fromEntries((await computeDeviceSummaries()).map((d) => [d.name, d]));
 const assert = (cond, msg) => {
   if (!cond) {
     console.error('FAIL:', msg);
@@ -55,7 +55,7 @@ assert(s['ok-dev'].ieee === '0x1', 'ieee carried through');
 assert(s['ok-dev'].lastSeen && !Number.isNaN(Date.parse(s['ok-dev'].lastSeen)), 'lastSeen is a valid timestamp');
 
 // meshHistory: 24h window holds 12 samples (5×ok 200, 5×warn 100, crit-low 40, crit-fail 200)
-const mh = meshHistory(DAY);
+const mh = await meshHistory(DAY);
 const tot = mh.reduce((a, p) => a + p.n, 0);
 assert(tot === 12 && mh.length === 5, 'meshHistory buckets and counts');
 assert(mh.every((p) => p.lqi >= 0 && p.lqi <= 255 && !Number.isNaN(Date.parse(p.ts))), 'meshHistory values sane');

@@ -76,3 +76,9 @@ export function ensureDataDir(): string {
   fs.mkdirSync(abs, { recursive: true });
   return abs;
 }
+
+// Absolute path to the SQLite file. Single source of truth for the filename;
+// client.ts builds the Prisma driver-adapter URL from it.
+export function dbFile(): string {
+  return path.join(ensureDataDir(), 'mesh-health.db');
+}

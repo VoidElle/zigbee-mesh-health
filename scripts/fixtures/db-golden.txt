@@ -1,0 +1,39 @@
+# Golden DB fingerprint captured from the pre-port (OLD) build.
+# Row counts:
+linkquality_daily_summary 1
+linkquality_samples 27
+log_events 12
+network_snapshots 1
+sqlite_sequence 3
+# .schema:
+CREATE TABLE linkquality_samples (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  device_name TEXT NOT NULL,
+  ieee_address TEXT,
+  lqi INTEGER NOT NULL,
+  ts DATETIME NOT NULL
+);
+CREATE TABLE sqlite_sequence(name,seq);
+CREATE INDEX idx_lqi_device_ts ON linkquality_samples(device_name, ts);
+CREATE TABLE network_snapshots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts DATETIME NOT NULL,
+  raw_json TEXT NOT NULL
+);
+CREATE TABLE log_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts DATETIME NOT NULL,
+  event_type TEXT NOT NULL,
+  device_name TEXT,
+  message TEXT
+);
+CREATE INDEX idx_events_type_ts ON log_events(event_type, ts);
+CREATE TABLE linkquality_daily_summary (
+  device_name TEXT NOT NULL,
+  day TEXT NOT NULL,
+  min_lqi INTEGER,
+  max_lqi INTEGER,
+  avg_lqi REAL,
+  sample_count INTEGER,
+  PRIMARY KEY (device_name, day)
+);

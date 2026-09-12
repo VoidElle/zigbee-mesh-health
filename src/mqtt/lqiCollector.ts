@@ -1,8 +1,9 @@
 import { getClient } from './client';
 import { config } from '../config';
 import { runtimeStatus } from '../runtime';
-import { enqueueSample } from '../storage/samples';
-import { insertEvent } from '../storage/events';
+import { enqueueSample } from '../db/repositories/samples';
+import { insertEvent } from '../db/repositories/events';
+import { getValue, setValue, withKeyLock } from '../db/repositories/runtimeState';
 
 // Channel 1 (spec §3.1) — passive link-quality collection + state-change history.
 // Subscribes to <baseTopic>/+ and never publishes anything.
@@ -13,12 +14,11 @@ interface DevicePayload {
   state?: unknown;
 }
 
-// Last seen state per device (friendly name). Only real transitions are logged.
-// ponytail: in-memory — one transition per device can be missed across app restarts;
-// persist last_states to a table if restart-time continuity matters.
-const lastStates = new Map<string, string>();
+// Last seen state per device (friendly name), persisted so restarts do not miss
+// a transition. Only real transitions are logged.
+const lastStateKey = (device: string) => `last_state:${device}`;
 
-export function handleDeviceMessage(topic: string, payloadStr: string): void {
+export async function handleDeviceMessage(topic: string, payloadStr: string): Promise<void> {
   // Segment(s) after the base topic; bridge/# belongs to channel 3.
   const relative = topic.startsWith(`${config.baseTopic}/`)
     ? topic.slice(config.baseTopic.length + 1)
@@ -39,12 +39,18 @@ export function handleDeviceMessage(topic: string, payloadStr: string): void {
 
   // State-change history: Z2M publishes "state" for switches/lights/plugs;
   // first sight is the baseline (no event), every real transition is one event.
-  if (typeof obj.state === 'string' && obj.state !== '' && lastStates.get(friendlyName) !== obj.state) {
-    const prev = lastStates.get(friendlyName);
-    if (prev !== undefined) {
-      insertEvent('state_change', friendlyName, `state: ${prev} → ${obj.state}`);
-    }
-    lastStates.set(friendlyName, obj.state);
+  if (typeof obj.state === 'string' && obj.state !== '') {
+    const next = obj.state;
+    const key = lastStateKey(friendlyName);
+    await withKeyLock(key, async () => {
+      const prev = await getValue(key);
+      if (prev !== next) {
+        if (prev !== undefined) {
+          await insertEvent('state_change', friendlyName, `state: ${prev} → ${next}`);
+        }
+        await setValue(key, next);
+      }
+    });
   }
 
   if (typeof obj.linkquality === 'number' && Number.isFinite(obj.linkquality)) {
@@ -58,6 +64,8 @@ export function startLqiCollector(): void {
   const client = getClient();
   client.subscribe(`${config.baseTopic}/+`);
   client.on('message', (topic, payload) => {
-    handleDeviceMessage(topic, payload.toString());
+    void handleDeviceMessage(topic, payload.toString()).catch((err) =>
+      console.error('[mqtt] device message failed', err)
+    );
   });
 }

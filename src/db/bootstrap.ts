@@ -1,14 +1,17 @@
-import Database from 'better-sqlite3';
-import { ensureDataDir } from '../config';
-import * as path from 'path';
+// Idempotent DDL bootstrap (D3): creates the five tables/indexes if missing.
+//
+// KEEP IN SYNC: this DDL must describe the same tables, columns, indexes and PKs
+// as ../../prisma/schema.prisma. Index names on disk are the ones declared here
+// (`idx_*`); Prisma only declares which columns are indexed. A change to one
+// requires the same change to the other. We do not use Prisma Migrate in v1;
+// this runs on first DB open so existing and fresh installs both work.
+// Structural type: only `exec` is used, so bootstrap needs no better-sqlite3
+// import (client.ts is the single owner of the driver handle).
+interface Execable {
+  exec(sql: string): unknown;
+}
 
-let db: Database.Database | null = null;
-
-export function getDb(): Database.Database {
-  if (db) return db;
-  const dir = ensureDataDir();
-  db = new Database(path.join(dir, 'mesh-health.db'));
-  db.pragma('journal_mode = WAL');
+export function bootstrapSchema(db: Execable): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS linkquality_samples (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,13 +46,10 @@ export function getDb(): Database.Database {
       sample_count INTEGER,
       PRIMARY KEY (device_name, day)
     );
-  `);
-  return db;
-}
 
-export function closeDb(): void {
-  if (db) {
-    db.close();
-    db = null;
-  }
+    CREATE TABLE IF NOT EXISTS runtime_state (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
 }

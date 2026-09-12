@@ -1,0 +1,85 @@
+// Prisma 7.10.0. Source of truth for the five tables.
+//
+// KEEP IN SYNC: the idempotent DDL in ../src/db/bootstrap.ts must describe the
+// same tables, columns, indexes and PKs as these models. Index names on disk
+// come from bootstrap.ts (`idx_*`); Prisma only declares the indexed columns.
+// A change to one requires the same change to the other. We do not use Prisma
+// Migrate in v1 (D3); bootstrap.ts creates tables on fresh and existing installs.
+//
+// Generator: the new `prisma-client` generator (not legacy `prisma-client-js`).
+// It emits TypeScript into src/generated/prisma, so the repo's `tsc` build
+// (rootDir: src, outDir: dist, module: commonjs) compiles the client into dist.
+// The legacy generator emits JS into node_modules and cannot be emitted under
+// src without breaking the dist runtime layout.
+//
+// DATABASE_URL: not read from a committed .env. Prisma 7 removed `url` from the
+// datasource block; the connection is supplied at runtime by the better-sqlite3
+// driver adapter, built from config.dataDir:
+//   { url: 'file:' + path.join(ensureDataDir(), 'mesh-health.db') }
+//
+// Timestamps (D2): adapter default timestampFormat "iso8601" — DateTime columns
+// are ISO-8601 TEXT, matching existing rows and the raw `strftime` queries.
+// Do NOT switch to unixepoch-ms.
+//
+// eventType is a plain String; the TS `EventType` union validates it. No SQLite
+// enum dependency. `day` is a String "YYYY-MM-DD" from strftime.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model LinkQualitySample {
+  id          Int      @id @default(autoincrement())
+  deviceName  String   @map("device_name")
+  ieeeAddress String?  @map("ieee_address")
+  lqi         Int
+  ts          DateTime
+
+  @@index([deviceName, ts])
+  @@map("linkquality_samples")
+}
+
+model NetworkSnapshot {
+  id      Int      @id @default(autoincrement())
+  ts      DateTime
+  rawJson String   @map("raw_json")
+
+  @@map("network_snapshots")
+}
+
+model LogEvent {
+  id         Int      @id @default(autoincrement())
+  ts         DateTime
+  eventType  String   @map("event_type")
+  deviceName String?  @map("device_name")
+  message    String?
+
+  @@index([eventType, ts])
+  @@map("log_events")
+}
+
+model LinkQualityDailySummary {
+  deviceName  String @map("device_name")
+  day         String
+  minLqi      Int?   @map("min_lqi")
+  maxLqi      Int?   @map("max_lqi")
+  avgLqi      Float? @map("avg_lqi")
+  sampleCount Int?   @map("sample_count")
+
+  @@id([deviceName, day])
+  @@map("linkquality_daily_summary")
+}
+
+// Dumb KV store for cross-restart change detection (D6). Keys are namespaced by
+// the callers: last_state:<device>, last_z2m_version, last_coordinator.
+model RuntimeState {
+  key   String @id
+  value String
+
+  @@map("runtime_state")
+}

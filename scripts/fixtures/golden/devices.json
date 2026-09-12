@@ -1,0 +1,47 @@
+{
+  "status": 200,
+  "body": {
+    "devices": [
+      {
+        "name": "Luce",
+        "ieee": "0x00158d0001a2b3c4",
+        "currentLqi": 165,
+        "status": "ok",
+        "avg24h": 124.2,
+        "avg7d": 133.25,
+        "failures24h": 2,
+        "lastSeen": "TS"
+      },
+      {
+        "name": "OldDev",
+        "ieee": "0x00ffff",
+        "currentLqi": 50,
+        "status": "ok",
+        "avg24h": null,
+        "avg7d": null,
+        "failures24h": 0,
+        "lastSeen": "TS"
+      },
+      {
+        "name": "Plug",
+        "ieee": "0x00158d0001a2b3c6",
+        "currentLqi": 225,
+        "status": "ok",
+        "avg24h": 205,
+        "avg7d": 207.5,
+        "failures24h": 3,
+        "lastSeen": "TS"
+      },
+      {
+        "name": "Sensore",
+        "ieee": "0x00158d0001a2b3c5",
+        "currentLqi": 110,
+        "status": "ok",
+        "avg24h": 85,
+        "avg7d": 90,
+        "failures24h": 1,
+        "lastSeen": "TS"
+      }
+    ]
+  }
+}

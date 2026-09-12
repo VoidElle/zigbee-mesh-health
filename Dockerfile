@@ -9,6 +9,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
+# Prisma client is generated into src/generated/prisma, so it must run before tsc.
+# The `prisma` CLI is build-only; runtime uses @prisma/client + the driver adapter.
+COPY prisma ./prisma
+RUN npx prisma generate
+
 COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build && npm prune --omit=dev

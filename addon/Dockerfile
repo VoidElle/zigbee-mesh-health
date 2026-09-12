@@ -10,6 +10,10 @@ RUN apk add --no-cache nodejs npm python3 make g++
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
+# Generate the client into src/generated/prisma before tsc. The `prisma` CLI is
+# build-only; runtime uses @prisma/client + the better-sqlite3 driver adapter.
+COPY prisma ./prisma
+RUN npx prisma generate
 COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build && npm prune --omit=dev

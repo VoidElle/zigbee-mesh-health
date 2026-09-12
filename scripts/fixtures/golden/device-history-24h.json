@@ -1,0 +1,29 @@
+{
+  "status": 200,
+  "body": {
+    "name": "Luce",
+    "range": "24h",
+    "points": [
+      {
+        "ts": "TS",
+        "lqi": 128
+      },
+      {
+        "ts": "TS",
+        "lqi": 130
+      },
+      {
+        "ts": "TS",
+        "lqi": 125
+      },
+      {
+        "ts": "TS",
+        "lqi": 118
+      },
+      {
+        "ts": "TS",
+        "lqi": 120
+      }
+    ]
+  }
+}
