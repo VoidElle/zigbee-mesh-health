@@ -144,6 +144,50 @@ Check the events view to correlate a degradation with a `bridge_restart` or `ver
 
 Everything lives in a single SQLite file (`DATA_DIR/mesh-health.db`, or the add-on's `/data`, which Home Assistant includes in backups automatically). Raw LQI samples older than `RETENTION_DAYS` are aggregated into daily min/max/avg per device and then deleted, so the database stays bounded. Events and network snapshots are kept indefinitely (they're tiny).
 
+## 🏗️ Architecture
+
+The code is split into four layers; dependencies point inward, never outward:
+
+```
+domain  <-  application  <-  infrastructure  <-  composition
+```
+
+- **`domain`** — pure types + business invariants (thresholds, event classification, status decision). No Node, no Prisma, no MQTT, no Express, no `Date.now()` (the clock is injected).
+- **`application`** — use cases that orchestrate domain ports. One use case per file, constructor injection.
+- **`infrastructure`** — adapters (Prisma, MQTT, Express, cron, Node `EventEmitter`). Wire formats in, domain types out; no business rules.
+- **`composition`** — builds concrete adapters, wires use cases, owns process lifecycle.
+
+```
+src/
+├── domain/                       # pure, zero dependencies
+│   ├── entities.ts
+│   ├── ports.ts
+│   ├── health-policy.ts
+│   └── event-classification.ts
+├── application/                  # depends on domain only
+│   ├── buffer/LinkQualityBuffer.ts
+│   └── use-cases/                # one file per use case
+├── infrastructure/               # depends on domain + application
+│   ├── config.ts
+│   ├── runtime.ts
+│   ├── clock/SystemClock.ts
+│   ├── persistence/sqlite/       # Prisma client, schema, repositories
+│   ├── messaging/                # MQTT client + router + in-memory event bus
+│   ├── networkmap/               # active-scan adapter + scheduler
+│   ├── http/                     # Express server + SSE
+│   └── scheduler/CronScheduler.ts
+├── composition/                  # depends on everything
+│   ├── container.ts              # public seam: wired singletons + re-exports
+│   └── main.ts                   # process entry (start/stop, signals)
+├── generated/prisma/             # Prisma client output (gitignored)
+├── styles/tailwind.css           # design tokens/theme (build input)
+└── index.ts                      # delegates to composition/main
+```
+
+Where new code goes: business rule → `domain`; orchestration → `application`; IO/adapter → `infrastructure`; wiring → `composition`.
+
+`src/composition/container.ts` is the public seam. Tests import the compiled build from `dist/composition/container.js`, not individual files. `test/architecture.test.mjs` scans `src/**/*.ts` and fails if the dependency rule is broken.
+
 ## 🛠️ Development
 
 ```bash

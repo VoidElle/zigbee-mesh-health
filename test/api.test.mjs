@@ -36,7 +36,7 @@ let base;
 let serverLog = '';
 
 before(async () => {
-  const { getDb, closeDb } = await import('../dist/db/client.js');
+  const { getDb, closeDb } = await import('../dist/composition/container.js');
   getDb().exec(readFileSync(new URL('./fixtures/seed.sql', import.meta.url), 'utf8'));
   closeDb();
 

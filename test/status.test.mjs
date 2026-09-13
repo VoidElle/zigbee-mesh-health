@@ -6,9 +6,7 @@ import { freshDataDir } from './helpers.mjs';
 
 freshDataDir('mh-status-test-');
 
-const { getDb, closePrisma } = await import('../dist/db/client.js');
-const { computeDeviceSummaries } = await import('../dist/analysis/status.js');
-const { meshHistory } = await import('../dist/db/repositories/samples.js');
+const { getDb, closePrisma, computeDeviceSummaries, meshHistory } = await import('../dist/composition/container.js');
 
 after(async () => {
   await closePrisma();

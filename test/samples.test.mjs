@@ -6,9 +6,8 @@ import { freshDataDir } from './helpers.mjs';
 
 freshDataDir('mh-samples-test-');
 
-const { getDb, closePrisma } = await import('../dist/db/client.js');
-const { history, listDeviceNames, latestLqiPerDevice, meshHistory, enqueueSample, flushSamples, sampleBus } =
-  await import('../dist/db/repositories/samples.js');
+const { getDb, closePrisma, history, listDeviceNames, latestLqiPerDevice, meshHistory, enqueueSample, flushSamples, sampleBus } =
+  await import('../dist/composition/container.js');
 
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;

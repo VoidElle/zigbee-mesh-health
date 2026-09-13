@@ -6,11 +6,8 @@ import { freshDataDir } from './helpers.mjs';
 
 freshDataDir('mh-events-test-');
 
-const { classifyLogging, extractDeviceName, handleLogging, handleBridgeEvent, handleInfo, handleDevices } =
-  await import('../dist/mqtt/eventCollector.js');
-const { handleDeviceMessage } = await import('../dist/mqtt/lqiCollector.js');
-const { listEvents, insertEvent, eventBus } = await import('../dist/db/repositories/events.js');
-const { latestLqiPerDevice, flushSamples } = await import('../dist/db/repositories/samples.js');
+const { classifyLogging, extractDeviceName, handleLogging, handleBridgeEvent, handleInfo, handleDevices, handleDeviceMessage, listEvents, insertEvent, eventBus, latestLqiPerDevice, flushSamples } =
+  await import('../dist/composition/container.js');
 
 const count = async (type) => (await listEvents({ type })).length;
 const buf = (o) => Buffer.from(JSON.stringify(o));
