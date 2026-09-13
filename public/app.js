@@ -778,6 +778,47 @@ async function poll() {
   }
 }
 
+/* ===== Sidebar resize ===== */
+const SIDEBAR_KEY = 'sidebar-w';
+const SIDEBAR_MIN = 180;
+const sidebarMax = () => Math.max(SIDEBAR_MIN, Math.min(560, window.innerWidth - 320));
+function setSidebarWidth(w, save) {
+  const clamped = Math.max(SIDEBAR_MIN, Math.min(sidebarMax(), Math.round(w)));
+  document.documentElement.style.setProperty('--sidebar-w', clamped + 'px');
+  if (save) localStorage.setItem(SIDEBAR_KEY, String(clamped));
+  return clamped;
+}
+function setupSidebarResize() {
+  const handle = el('sidebar-resize');
+  const saved = Number(localStorage.getItem(SIDEBAR_KEY));
+  if (saved) setSidebarWidth(saved, false);
+  let dragging = false;
+  const stop = () => {
+    if (!dragging) return;
+    dragging = false;
+    document.body.style.userSelect = '';
+    const w = document.documentElement.style.getPropertyValue('--sidebar-w');
+    if (w) localStorage.setItem(SIDEBAR_KEY, w.replace('px', ''));
+  };
+  handle.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    handle.setPointerCapture(e.pointerId);
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  handle.addEventListener('pointermove', (e) => {
+    if (dragging) setSidebarWidth(e.clientX, false);
+  });
+  handle.addEventListener('pointerup', stop);
+  handle.addEventListener('pointercancel', stop);
+  handle.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const cur = parseInt(document.documentElement.style.getPropertyValue('--sidebar-w'), 10) || 272;
+    setSidebarWidth(cur + (e.key === 'ArrowRight' ? 16 : -16), true);
+  });
+}
+
 function init() {
   el('rangebar').querySelector('button[data-range="24h"]').setAttribute('aria-pressed', 'true');
   el('rangebar').addEventListener('click', (e) => {
@@ -792,6 +833,7 @@ function init() {
     if (route().view === 'events') void loadEvents();
   });
   el('map-refresh').addEventListener('click', () => void refreshMap());
+  setupSidebarResize();
   window.addEventListener('hashchange', onRoute);
   onRoute();
   void poll();

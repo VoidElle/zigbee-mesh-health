@@ -9,8 +9,9 @@
   <script src="app.js" defer></script>
 </head>
 <body>
-  <div class="grid grid-cols-[272px_1fr] min-h-screen max-[720px]:grid-cols-1">
-    <aside class="bg-panel border-r border-line flex flex-col sticky top-0 h-screen max-[720px]:static max-[720px]:h-auto max-[720px]:border-r-0 max-[720px]:border-b max-[720px]:border-line">
+  <div class="grid grid-cols-[var(--sidebar-w,272px)_1fr] min-h-screen max-[720px]:grid-cols-1">
+    <aside class="relative bg-panel border-r border-line flex flex-col sticky top-0 h-screen max-[720px]:static max-[720px]:h-auto max-[720px]:border-r-0 max-[720px]:border-b max-[720px]:border-line">
+      <div id="sidebar-resize" role="separator" aria-orientation="vertical" aria-label="Ridimensiona barra laterale" tabindex="0" class="absolute top-0 -right-[3px] w-1.5 h-full cursor-col-resize touch-none z-10 hover:bg-warn/40 focus-visible:bg-warn/40 max-[720px]:hidden"></div>
       <header class="p-[14px_14px_10px] border-b border-line">
         <h1 class="m-0 mb-1.5 text-title font-semibold tracking-[0.02em]">Mesh Health</h1>
         <p class="m-0 flex items-center gap-[7px] text-label text-muted"><span class="inline-block w-2 h-2 rounded-full flex-none bg-muted" id="health-dot"></span><span id="health-text">Avvio…</span></p>
