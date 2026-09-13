@@ -125,6 +125,7 @@ const state = { devices: [], health: null, snap: null, selected: null, range: '2
 let chart = null;
 let hmChart = null;
 let historySeq = 0;
+let homeStatsAnimated = false;
 
 // Aliases are display-only; the canonical Z2M name still keys routes and API calls.
 const dispName = (name) => {
@@ -188,11 +189,13 @@ function renderHealth() {
   const sub = el('health-sample');
   if (!state.health) {
     dot.className = dotCls('muted');
+    dot.classList.toggle('pulse', true);
     text.textContent = t('health.unreachable');
     sub.hidden = true;
     return;
   }
   dot.className = dotCls(state.health.mqttConnected ? 'ok' : 'critical');
+  dot.classList.toggle('pulse', !state.health.mqttConnected);
   text.textContent = state.health.mqttConnected ? t('health.mqttConnected') : t('health.mqttDisconnected');
   sub.hidden = false;
   sub.textContent = state.health.lastSampleAt
@@ -579,13 +582,19 @@ function renderHomeStats() {
   const n = (s) => ds.filter((d) => d.status === s).length;
   const avgLqi = ds.length ? Math.round(ds.reduce((a, d) => a + d.currentLqi, 0) / ds.length) : null;
   const fails = ds.reduce((a, d) => a + (d.failures24h || 0), 0);
-  el('hm-stats').innerHTML = `
+  const stats = el('hm-stats');
+  stats.innerHTML = `
     <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]">${ds.length}</span><span class="text-label text-muted">${t('home.statDevices')}</span></div>
     <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-ok">${n('ok')}</span><span class="text-label text-muted">${t('home.statOk')}</span></div>
     <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-warn">${n('warning')}</span><span class="text-label text-muted">${t('home.statWarning')}</span></div>
     <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-crit">${n('critical')}</span><span class="text-label text-muted">${t('home.statCritical')}</span></div>
     <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]" style="color:${statusColorLqi(avgLqi ?? 0, null)}">${avgLqi != null ? avgLqi : '-'}</span><span class="text-label text-muted">${t('home.statAvg')}</span></div>
     <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]${fails > 0 ? ' text-crit' : ''}">${fails}</span><span class="text-label text-muted">${t('home.statFailures')}</span></div>`;
+  if (!homeStatsAnimated) {
+    homeStatsAnimated = true;
+    stats.classList.add('animate');
+    setTimeout(() => stats.classList.remove('animate'), 700);
+  }
   el('home-empty').hidden = ds.length > 0;
 }
 
@@ -773,7 +782,11 @@ const VIEWS = { home: 'view-home', device: 'view-device', map: 'view-map', event
 function onRoute() {
   const r = route();
   for (const id of Object.values(VIEWS)) el(id).hidden = true;
-  el(VIEWS[r.view]).hidden = false;
+  const active = el(VIEWS[r.view]);
+  active.hidden = false;
+  active.classList.remove('view-enter');
+  void active.offsetWidth;
+  active.classList.add('view-enter');
   if (r.view === 'home') el('nav-home').setAttribute('aria-current', 'page');
   else el('nav-home').removeAttribute('aria-current');
   if (r.view === 'map') el('nav-map').setAttribute('aria-current', 'page');

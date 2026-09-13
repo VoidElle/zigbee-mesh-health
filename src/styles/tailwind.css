@@ -32,4 +32,48 @@
   button:hover:not(:disabled) { @apply border-muted; }
   button:disabled { @apply text-muted cursor-not-allowed; }
   :focus-visible { outline: 2px solid var(--color-warn); outline-offset: 2px; }
+
+  /* Press feedback: instant, subtle, every button */
+  button:not(:disabled) {
+    transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+      color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+  }
+  button:not(:disabled):active { transform: scale(0.97); }
+}
+
+@layer components {
+  /* Route change: enter with a short fade+rise */
+  .view-enter { animation: view-in 220ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+
+  /* Map SVG is injected as raw HTML on each load */
+  #map-svg svg { animation: view-in 260ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+
+  /* Health degraded/unreachable: gentle pulse draws the eye */
+  #health-dot.pulse { animation: dot-pulse 1.5s ease-in-out infinite; }
+
+  /* Overview stat cards: one-time stagger on first paint */
+  #hm-stats.animate > div { animation: card-in 320ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+  #hm-stats.animate > div:nth-child(2) { animation-delay: 40ms; }
+  #hm-stats.animate > div:nth-child(3) { animation-delay: 80ms; }
+  #hm-stats.animate > div:nth-child(4) { animation-delay: 120ms; }
+  #hm-stats.animate > div:nth-child(5) { animation-delay: 160ms; }
+  #hm-stats.animate > div:nth-child(6) { animation-delay: 200ms; }
+}
+
+@keyframes view-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(8px); }
+}
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-enter, #map-svg svg, #hm-stats.animate > div { animation: none; }
+  #health-dot.pulse { animation: none; }
+  button:not(:disabled) { transition: none; }
+  button:not(:disabled):active { transform: none; }
 }
