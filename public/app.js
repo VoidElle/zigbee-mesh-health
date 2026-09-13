@@ -381,6 +381,12 @@ async function loadHistory() {
 }
 
 /* ===== Events ===== */
+function setListHTML(ul, html) {
+  if (ul._html === html) return;
+  ul._html = html;
+  ul.innerHTML = html;
+}
+
 function eventRow(e) {
   const base =
     'grid grid-cols-[132px_148px_minmax(110px,0.35fr)_1fr] gap-2.5 px-3 py-[7px] border-b border-line bg-panel min-w-0 last:border-b-0 max-[720px]:grid-cols-[108px_1fr] max-[720px]:grid-rows-[auto_auto]';
@@ -394,15 +400,14 @@ function eventRow(e) {
 
 async function loadDeviceEvents(name) {
   const ul = el('dev-events');
-  ul.innerHTML = '';
   try {
     const d = await api('/api/events?since=30d&limit=500');
     const rows = (d.events || []).filter((e) => e.device_name === name).slice(0, 30);
-    ul.innerHTML = rows.length
+    setListHTML(ul, rows.length
       ? rows.map(eventRow).join('')
-      : `<li class="grid grid-cols-1 text-muted px-3 py-[7px] border-b border-line bg-panel">${t('device.noEvents')}</li>`;
+      : `<li class="grid grid-cols-1 text-muted px-3 py-[7px] border-b border-line bg-panel">${t('device.noEvents')}</li>`);
   } catch {
-    ul.innerHTML = `<li class="grid grid-cols-1 text-muted px-3 py-[7px] border-b border-line bg-panel">${t('common.eventsUnavailable')}</li>`;
+    setListHTML(ul, `<li class="grid grid-cols-1 text-muted px-3 py-[7px] border-b border-line bg-panel">${t('common.eventsUnavailable')}</li>`);
   }
 }
 
@@ -414,13 +419,12 @@ async function loadEvents() {
   if (since) q.set('since', since);
   const ul = el('ev-list');
   const empty = el('ev-empty');
-  ul.innerHTML = '';
   try {
     const d = await api('/api/events?' + q.toString());
     const rows = d.events || [];
     empty.textContent = t('events.empty');
     empty.hidden = rows.length > 0;
-    ul.innerHTML = rows.map(eventRow).join('');
+    setListHTML(ul, rows.map(eventRow).join(''));
   } catch {
     empty.textContent = t('common.eventsUnavailable');
     empty.hidden = false;
@@ -626,7 +630,7 @@ async function loadHomeEvents() {
     // ponytail: type counts derived from this 500-row fetch - exact tallies need a dedicated endpoint
     const d = await api('/api/events?since=24h&limit=500');
     const rows = d.events || [];
-    el('hm-events').innerHTML = rows.slice(0, 8).map(eventRow).join('');
+    setListHTML(el('hm-events'), rows.slice(0, 8).map(eventRow).join(''));
     el('hm-ev-empty').hidden = rows.length > 0;
     const counts = {};
     for (const e of rows) counts[e.event_type] = (counts[e.event_type] || 0) + 1;
