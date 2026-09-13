@@ -18,6 +18,15 @@ interface DevicePayload {
 // a transition. Only real transitions are logged.
 const lastStateKey = (device: string) => `last_state:${device}`;
 
+// friendly_name -> ieee_address. Z2M device state messages do NOT carry the
+// IEEE address; it only appears in bridge/devices (retained). That handler
+// fills this map so samples get the address.
+const ieeeByFriendlyName = new Map<string, string>();
+
+export function setDeviceIeee(friendlyName: string, ieee: string): void {
+  ieeeByFriendlyName.set(friendlyName, ieee);
+}
+
 export async function handleDeviceMessage(topic: string, payloadStr: string): Promise<void> {
   // Segment(s) after the base topic; bridge/# belongs to channel 3.
   const relative = topic.startsWith(`${config.baseTopic}/`)
@@ -54,7 +63,10 @@ export async function handleDeviceMessage(topic: string, payloadStr: string): Pr
   }
 
   if (typeof obj.linkquality === 'number' && Number.isFinite(obj.linkquality)) {
-    const ieee = typeof obj.ieee_address === 'string' ? obj.ieee_address : null;
+    const ieee =
+      typeof obj.ieee_address === 'string'
+        ? obj.ieee_address
+        : ieeeByFriendlyName.get(friendlyName) ?? null;
     enqueueSample(friendlyName, ieee, obj.linkquality);
     runtimeStatus.lastSampleAt = new Date();
   }

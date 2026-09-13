@@ -2,6 +2,7 @@ import { getClient } from './client';
 import { config } from '../config';
 import { insertEvent, type EventType } from '../db/repositories/events';
 import { getValue, setValue, withKeyLock } from '../db/repositories/runtimeState';
+import { setDeviceIeee } from './lqiCollector';
 
 // Channel 3 (spec §3.3) — Z2M bridge logging + info ingestion.
 // Subscribes only; never publishes.
@@ -109,6 +110,34 @@ export async function handleBridgeEvent(payload: Buffer): Promise<void> {
   await insertEvent(type, name, `bridge event: ${obj.type}${name ? ` '${name}'` : ''}`);
 }
 
+// bridge/devices is a retained array of every known device, including
+// friendly_name + ieee_address. Replayed on subscribe, so already-connected
+// devices are covered too. Feeds the friendly_name -> IEEE map used by
+// channel 1 (device state messages carry no IEEE address).
+interface BridgeDevice {
+  friendly_name?: unknown;
+  ieee_address?: unknown;
+}
+
+export function handleDevices(payload: Buffer): void {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(payload.toString());
+  } catch {
+    return;
+  }
+  if (!Array.isArray(parsed)) return;
+  for (const item of parsed as BridgeDevice[]) {
+    if (
+      typeof item.friendly_name === 'string' &&
+      item.friendly_name !== '' &&
+      typeof item.ieee_address === 'string'
+    ) {
+      setDeviceIeee(item.friendly_name, item.ieee_address);
+    }
+  }
+}
+
 export async function handleInfo(payload: Buffer): Promise<void> {
   let parsed: unknown;
   try {
@@ -166,10 +195,12 @@ export function startEventCollector(): void {
   client.subscribe(`${config.baseTopic}/bridge/logging`);
   client.subscribe(`${config.baseTopic}/bridge/info`);
   client.subscribe(`${config.baseTopic}/bridge/event`);
+  client.subscribe(`${config.baseTopic}/bridge/devices`);
   client.on('message', (topic, payload) => {
     if (topic === `${config.baseTopic}/bridge/logging`) void handleLogging(payload).catch(logHandlerError);
     else if (topic === `${config.baseTopic}/bridge/info`) void handleInfo(payload).catch(logHandlerError);
     else if (topic === `${config.baseTopic}/bridge/event`) void handleBridgeEvent(payload).catch(logHandlerError);
+    else if (topic === `${config.baseTopic}/bridge/devices`) handleDevices(payload);
   });
 }
 

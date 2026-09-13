@@ -6,10 +6,11 @@ import { freshDataDir } from './helpers.mjs';
 
 freshDataDir('mh-events-test-');
 
-const { classifyLogging, extractDeviceName, handleLogging, handleBridgeEvent, handleInfo } =
+const { classifyLogging, extractDeviceName, handleLogging, handleBridgeEvent, handleInfo, handleDevices } =
   await import('../dist/mqtt/eventCollector.js');
 const { handleDeviceMessage } = await import('../dist/mqtt/lqiCollector.js');
 const { listEvents } = await import('../dist/db/repositories/events.js');
+const { latestLqiPerDevice, flushSamples } = await import('../dist/db/repositories/samples.js');
 
 const count = async (type) => (await listEvents({ type })).length;
 const buf = (o) => Buffer.from(JSON.stringify(o));
@@ -87,6 +88,23 @@ test('event collector + lqi state history', async (t) => {
     assert.ok((await count('state_change')) === 1, 'bridge/# must not produce state events');
     await handleDeviceMessage('zigbee2mqtt/Sensore', dev({ temperature: 21 }));
     assert.ok((await count('state_change')) === 1, 'payload without state ignored');
+  });
+
+  await t.test('handleDevices: retained IEEE map fills samples', async () => {
+    handleDevices(
+      Buffer.from(
+        JSON.stringify([
+          { friendly_name: 'Sensore', ieee_address: '0x00158d0001a2b3c4' },
+          { friendly_name: '', ieee_address: '0xignored' },
+        ])
+      )
+    );
+    await handleDeviceMessage('zigbee2mqtt/Sensore', dev({ linkquality: 42 }));
+    await flushSamples();
+    const s = (await latestLqiPerDevice()).find((r) => r.name === 'Sensore');
+    assert.ok(s && s.ieee === '0x00158d0001a2b3c4', 'ieee resolved from bridge/devices');
+    handleDevices(Buffer.from('not json'));
+    handleDevices(Buffer.from(JSON.stringify({ not: 'array' })));
   });
 
   await t.test('concurrent transitions serialise', async () => {
