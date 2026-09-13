@@ -5,7 +5,7 @@ import { enqueueSample } from '../db/repositories/samples';
 import { insertEvent } from '../db/repositories/events';
 import { getValue, setValue, withKeyLock } from '../db/repositories/runtimeState';
 
-// Channel 1 (spec §3.1) — passive link-quality collection + state-change history.
+// Channel 1 (spec §3.1) - passive link-quality collection + state-change history.
 // Subscribes to <baseTopic>/+ and never publishes anything.
 
 interface DevicePayload {
@@ -38,7 +38,7 @@ export async function handleDeviceMessage(topic: string, payloadStr: string): Pr
   try {
     parsed = JSON.parse(payloadStr);
   } catch {
-    return; // not JSON (e.g. retained non-JSON) — ignore
+    return; // not JSON (e.g. retained non-JSON) - ignore
   }
   if (parsed === null || typeof parsed !== 'object') return;
   const obj = parsed as DevicePayload;

@@ -1,4 +1,10 @@
+import { EventEmitter } from 'node:events';
 import { getPrisma } from '../client';
+
+// In-process kick channel for the SSE stream: fires once per stored event.
+// No payload - the frontend re-fetches with its current filter on each kick.
+export const eventBus = new EventEmitter();
+eventBus.setMaxListeners(0);
 
 export type EventType =
   | 'route_failure'
@@ -17,6 +23,7 @@ export async function insertEvent(
   await getPrisma().logEvent.create({
     data: { ts: new Date(), eventType: type, deviceName: device, message },
   });
+  eventBus.emit('event');
 }
 
 export interface ListEventsOptions {

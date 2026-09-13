@@ -30,6 +30,7 @@
       </header>
       <nav class="flex-1 overflow-y-auto py-1.5 max-[720px]:max-h-[40vh]" id="devlist" aria-label="Dispositivi" data-i18n-aria-label="nav.devices"></nav>
       <footer class="border-t border-line px-[14px] py-2 flex flex-col gap-0.5 max-[720px]:flex-row max-[720px]:gap-4">
+        <a href="#/" id="nav-home" class="text-muted no-underline py-[5px] text-section hover:text-ink aria-[current=page]:text-ink" data-i18n="nav.home">Panoramica</a>
         <a href="#/map" id="nav-map" class="text-muted no-underline py-[5px] text-section hover:text-ink aria-[current=page]:text-ink" data-i18n="nav.map">Mappa di rete</a>
         <a href="#/events" id="nav-events" class="text-muted no-underline py-[5px] text-section hover:text-ink aria-[current=page]:text-ink" data-i18n="nav.events">Eventi</a>
       </footer>
@@ -71,7 +72,7 @@
         <a class="hidden text-muted no-underline text-label hover:text-ink max-[720px]:inline-block max-[720px]:mb-2" href="#/" data-i18n="device.back">← Dispositivi</a>
         <header class="mb-[14px]">
           <div class="flex items-center gap-2.5">
-            <h2 id="dev-name" class="m-0 text-title font-semibold">—</h2>
+            <h2 id="dev-name" class="m-0 text-title font-semibold">-</h2>
             <button type="button" id="dev-rename-btn" class="text-label px-2 py-0.5" data-i18n="device.rename" hidden>Rinomina</button>
           </div>
           <form id="dev-rename-form" class="flex items-center gap-2 mt-1.5" hidden>
@@ -96,7 +97,7 @@
 
       <section id="view-map" hidden>
         <h2 class="m-0 mb-1 text-title font-semibold" data-i18n="map.title">Mappa di rete</h2>
-        <p class="mt-0.5 mb-3 text-muted text-body"><span data-i18n="map.snapshot">Snapshot:</span> <span class="font-mono text-ink" id="map-ts">—</span></p>
+        <p class="mt-0.5 mb-3 text-muted text-body"><span data-i18n="map.snapshot">Snapshot:</span> <span class="font-mono text-ink" id="map-ts">-</span></p>
         <p id="map-msg" class="mt-0 mb-2.5 px-3 py-2 border border-line border-l-2 border-l-warn bg-panel text-ink text-label" hidden></p>
         <div class="bg-panel border border-line p-2">
           <p id="map-empty" class="m-0 text-muted text-body" data-i18n="map.empty" hidden>Nessuno snapshot disponibile. Usare il pulsante sottostante per richiederne uno (operazione rara e lenta).</p>

@@ -7,7 +7,7 @@ import { freshDataDir } from './helpers.mjs';
 freshDataDir('mh-samples-test-');
 
 const { getDb, closePrisma } = await import('../dist/db/client.js');
-const { history, listDeviceNames, latestLqiPerDevice, meshHistory, enqueueSample, flushSamples } =
+const { history, listDeviceNames, latestLqiPerDevice, meshHistory, enqueueSample, flushSamples, sampleBus } =
   await import('../dist/db/repositories/samples.js');
 
 const HOUR = 3600_000;
@@ -58,9 +58,15 @@ test('samples repository', async () => {
   );
 
   // flushSamples: buffered insert lands via Prisma createMany (also auto-flush at size)
+  let kicks = 0;
+  sampleBus.on('sample', () => {
+    kicks += 1;
+  });
   enqueueSample('c-dev', '0xc', 77);
   enqueueSample('c-dev', '0xc', 88);
   await flushSamples();
   const ch = await history('c-dev', DAY);
   assert.ok(ch.length === 2 && [77, 88].every((v) => ch.some((r) => r.lqi === v)), 'flushSamples createMany');
+  await flushSamples();
+  assert.equal(kicks, 1, 'one sampleBus kick per non-empty flush');
 });

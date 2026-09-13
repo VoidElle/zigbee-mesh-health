@@ -9,7 +9,7 @@ freshDataDir('mh-events-test-');
 const { classifyLogging, extractDeviceName, handleLogging, handleBridgeEvent, handleInfo, handleDevices } =
   await import('../dist/mqtt/eventCollector.js');
 const { handleDeviceMessage } = await import('../dist/mqtt/lqiCollector.js');
-const { listEvents } = await import('../dist/db/repositories/events.js');
+const { listEvents, insertEvent, eventBus } = await import('../dist/db/repositories/events.js');
 const { latestLqiPerDevice, flushSamples } = await import('../dist/db/repositories/samples.js');
 
 const count = async (type) => (await listEvents({ type })).length;
@@ -121,5 +121,17 @@ test('event collector + lqi state history', async (t) => {
       raced.some((e) => e.device_name === 'race-dev' && e.message === 'state: ON → OFF'),
       'concurrent ON -> OFF logged'
     );
+  });
+
+  await t.test('insertEvent emits one eventBus kick (SSE)', async () => {
+    let kicks = 0;
+    const onKick = () => {
+      kicks += 1;
+    };
+    eventBus.on('event', onKick);
+    await insertEvent('other', null, 'sse kick probe');
+    await listEvents({ type: 'other' });
+    eventBus.off('event', onKick);
+    assert.equal(kicks, 1, 'one kick per stored event');
   });
 });

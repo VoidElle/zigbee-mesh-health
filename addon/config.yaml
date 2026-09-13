@@ -1,5 +1,5 @@
 name: Zigbee Mesh Health
-version: "1.0.10"          # keep in sync with package.json version
+version: "1.0.11"          # keep in sync with package.json version
 slug: zigbee_mesh_health
 description: Passive LQI and routing-health monitor for Zigbee2MQTT meshes
 url: https://github.com/VoidElle/zigbee-mesh-health
@@ -17,7 +17,7 @@ panel_title: Zigbee Mesh Health
 ports:
   8080/tcp: null          # disabled by default; user can map it for direct API access
 ports_description:
-  8080/tcp: Direct API/UI access (optional — set an API key if you enable this)
+  8080/tcp: Direct API/UI access (optional - set an API key if you enable this)
 options:
   base_topic: zigbee2mqtt
   networkmap_schedule: "04:00"

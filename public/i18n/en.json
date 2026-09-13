@@ -6,6 +6,7 @@
   "health.lastSample": "Last sample: {time}",
   "health.noSample": "No sample received",
   "nav.devices": "Devices",
+  "nav.home": "Overview",
   "nav.map": "Network map",
   "nav.events": "Events",
   "a11y.resizeSidebar": "Resize sidebar",

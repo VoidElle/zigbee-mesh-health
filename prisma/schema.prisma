@@ -17,7 +17,7 @@
 // driver adapter, built from config.dataDir:
 //   { url: 'file:' + path.join(ensureDataDir(), 'mesh-health.db') }
 //
-// Timestamps (D2): adapter default timestampFormat "iso8601" — DateTime columns
+// Timestamps (D2): adapter default timestampFormat "iso8601" - DateTime columns
 // are ISO-8601 TEXT, matching existing rows and the raw `strftime` queries.
 // Do NOT switch to unixepoch-ms.
 //

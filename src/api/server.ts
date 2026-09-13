@@ -1,11 +1,12 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
+import { type EventEmitter } from 'node:events';
 import * as path from 'path';
 import { config } from '../config';
 import { runtimeStatus } from '../runtime';
 import { computeDeviceSummaries } from '../analysis/status';
-import { history, listDeviceNames, meshHistory } from '../db/repositories/samples';
+import { history, listDeviceNames, meshHistory, sampleBus } from '../db/repositories/samples';
 import { getAllAliases, setAlias } from '../db/repositories/aliases';
-import { listEvents, type EventType } from '../db/repositories/events';
+import { eventBus, listEvents, type EventType } from '../db/repositories/events';
 import { getLatestSnapshot } from '../db/repositories/snapshots';
 import { triggerManualRefresh } from '../networkmap';
 
@@ -34,6 +35,24 @@ function parseSince(v: string | undefined): number | undefined {
 function queryStr(req: Request, name: string): string | undefined {
   const v = req.query[name];
   return typeof v === 'string' ? v : undefined;
+}
+
+// SSE kick channel: one `data:` per bus emission, heartbeats keep proxies open.
+function sse(req: Request, res: Response, bus: EventEmitter, event: string): void {
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+  res.flushHeaders();
+  res.write(': connected\n\n');
+  const onKick = () => res.write('data: 1\n\n');
+  bus.on(event, onKick);
+  const heartbeat = setInterval(() => res.write(': hb\n\n'), 25_000);
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    bus.off(event, onKick);
+  });
 }
 
 export function startApi(): void {
@@ -111,6 +130,10 @@ export function startApi(): void {
     });
   });
 
+  app.get('/api/events/stream', (req, res) => sse(req, res, eventBus, 'event'));
+
+  app.get('/api/samples/stream', (req, res) => sse(req, res, sampleBus, 'sample'));
+
   app.get('/api/network/latest', async (_req, res) => {
     const row = await getLatestSnapshot();
     if (!row) {
@@ -160,7 +183,7 @@ export function startApi(): void {
     res.status(404).json({ error: 'not found' });
   });
 
-  // Static frontend (task 06); missing public/ is tolerated — API stays up.
+  // Static frontend (task 06); missing public/ is tolerated - API stays up.
   const publicDir = path.join(process.cwd(), 'public');
   app.use(express.static(publicDir));
   app.get('/', (_req, res) => {

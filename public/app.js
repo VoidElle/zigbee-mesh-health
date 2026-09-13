@@ -204,18 +204,18 @@ function renderHealth() {
 function renderDevHeader() {
   const d = state.devices.find((x) => x.name === state.selected);
   const alias = currentAlias(state.selected);
-  el('dev-name').textContent = state.selected ? dispName(state.selected) : '—';
+  el('dev-name').textContent = state.selected ? dispName(state.selected) : '-';
   el('dev-rename-btn').hidden = !state.selected;
   el('dev-rename-form').hidden = true;
   el('dev-rename-input').placeholder = state.selected || t('device.renamePlaceholder');
   el('dev-data').innerHTML = d
     ? `<span><span class="text-label">${t('device.currentLqi')} </span><span class="font-mono text-ink">${d.currentLqi}</span></span>
 <span><span class="text-label">${t('device.status')} </span><span class="${dotCls(d.status)}"></span> ${statusLabel(d.status)}</span>
-<span><span class="text-label">${t('device.avg24h')} </span><span class="font-mono text-ink">${d.avg24h != null ? Math.round(d.avg24h) : '—'}</span></span>
-<span><span class="text-label">${t('device.avg7d')} </span><span class="font-mono text-ink">${d.avg7d != null ? Math.round(d.avg7d) : '—'}</span></span>
+<span><span class="text-label">${t('device.avg24h')} </span><span class="font-mono text-ink">${d.avg24h != null ? Math.round(d.avg24h) : '-'}</span></span>
+<span><span class="text-label">${t('device.avg7d')} </span><span class="font-mono text-ink">${d.avg7d != null ? Math.round(d.avg7d) : '-'}</span></span>
 <span><span class="text-label">${t('device.failures24h')} </span><span class="font-mono text-ink">${d.failures24h}</span></span>
-<span><span class="text-label">${t('device.lastSeen')} </span><span class="font-mono text-ink">${d.lastSeen ? fmtFull(d.lastSeen) : '—'}</span></span>
-<span><span class="text-label">IEEE </span><span class="font-mono text-ink">${d.ieee ? esc(d.ieee) : '—'}</span></span>${alias ? `
+<span><span class="text-label">${t('device.lastSeen')} </span><span class="font-mono text-ink">${d.lastSeen ? fmtFull(d.lastSeen) : '-'}</span></span>
+<span><span class="text-label">IEEE </span><span class="font-mono text-ink">${d.ieee ? esc(d.ieee) : '-'}</span></span>${alias ? `
 <span><span class="text-label">${t('device.z2mName')} </span><span class="font-mono text-ink">${esc(d.name)}</span></span>` : ''}`
     : `<span>${t('device.notInData')}</span>`;
 }
@@ -387,7 +387,7 @@ function eventRow(e) {
   return `<li class="${base}${e.event_type === 'version_change' ? ' border-l-2 border-l-warn bg-version' : ''}">
   <span class="font-mono text-muted text-label">${fmtDateTime(e.ts)}</span>
   <span class="text-ink text-label">${eventLabel(e.event_type)}</span>
-  <span class="text-muted text-label truncate">${e.device_name ? esc(dispName(e.device_name)) : '—'}</span>
+  <span class="text-muted text-label truncate">${e.device_name ? esc(dispName(e.device_name)) : '-'}</span>
   <span class="text-ink text-label [overflow-wrap:anywhere]">${e.message ? esc(e.message) : ''}</span>
 </li>`;
 }
@@ -537,7 +537,7 @@ async function loadMap() {
   const emptyEl = el('map-empty');
   box.innerHTML = '';
   emptyEl.hidden = true;
-  el('map-ts').textContent = '—';
+  el('map-ts').textContent = '-';
   let snap;
   try {
     snap = await api('/api/network/latest');
@@ -580,7 +580,7 @@ function renderHomeStats() {
     <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-ok">${n('ok')}</span><span class="text-label text-muted">${t('home.statOk')}</span></div>
     <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-warn">${n('warning')}</span><span class="text-label text-muted">${t('home.statWarning')}</span></div>
     <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-crit">${n('critical')}</span><span class="text-label text-muted">${t('home.statCritical')}</span></div>
-    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]" style="color:${statusColorLqi(avgLqi ?? 0, null)}">${avgLqi != null ? avgLqi : '—'}</span><span class="text-label text-muted">${t('home.statAvg')}</span></div>
+    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]" style="color:${statusColorLqi(avgLqi ?? 0, null)}">${avgLqi != null ? avgLqi : '-'}</span><span class="text-label text-muted">${t('home.statAvg')}</span></div>
     <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]${fails > 0 ? ' text-crit' : ''}">${fails}</span><span class="text-label text-muted">${t('home.statFailures')}</span></div>`;
   el('home-empty').hidden = ds.length > 0;
 }
@@ -594,7 +594,7 @@ function renderHomeWatch() {
       (d) => `<li><a class="flex items-center flex-wrap gap-x-2.5 gap-y-1.5 px-3 py-[7px] border-b border-line bg-panel text-ink no-underline min-w-0 last:border-b-0 hover:bg-hover" href="#/device/${encodeURIComponent(d.name)}">
   <span class="${dotCls(d.status)}"></span>
   <span class="font-medium truncate">${esc(dispName(d.name))}</span>
-  <span class="font-mono text-muted text-label">${t('home.watchLine', { lqi: d.currentLqi, avg24h: d.avg24h != null ? Math.round(d.avg24h) : '—', avg7d: d.avg7d != null ? Math.round(d.avg7d) : '—', failures: d.failures24h })}</span>
+  <span class="font-mono text-muted text-label">${t('home.watchLine', { lqi: d.currentLqi, avg24h: d.avg24h != null ? Math.round(d.avg24h) : '-', avg7d: d.avg7d != null ? Math.round(d.avg7d) : '-', failures: d.failures24h })}</span>
 </a></li>`
     )
     .join('');
@@ -623,7 +623,7 @@ function renderHomeStale() {
 
 async function loadHomeEvents() {
   try {
-    // ponytail: type counts derived from this 500-row fetch — exact tallies need a dedicated endpoint
+    // ponytail: type counts derived from this 500-row fetch - exact tallies need a dedicated endpoint
     const d = await api('/api/events?since=24h&limit=500');
     const rows = d.events || [];
     el('hm-events').innerHTML = rows.slice(0, 8).map(eventRow).join('');
@@ -678,7 +678,7 @@ function renderHomeNet() {
 async function loadHomeSnapshot() {
   try {
     state.snap = await api('/api/network/latest');
-    el('hm-snap').innerHTML = `${t('home.snapshot', { time: `<span class="font-mono text-ink">${esc(fmtFull(state.snap.ts))}</span>` })} — <a href="#/map" class="text-ink">${esc(t('common.view'))}</a>`;
+    el('hm-snap').innerHTML = `${t('home.snapshot', { time: `<span class="font-mono text-ink">${esc(fmtFull(state.snap.ts))}</span>` })} - <a href="#/map" class="text-ink">${esc(t('common.view'))}</a>`;
   } catch {
     state.snap = null;
     el('hm-snap').textContent = t('home.noMap');
@@ -770,6 +770,8 @@ function onRoute() {
   const r = route();
   for (const id of Object.values(VIEWS)) el(id).hidden = true;
   el(VIEWS[r.view]).hidden = false;
+  if (r.view === 'home') el('nav-home').setAttribute('aria-current', 'page');
+  else el('nav-home').removeAttribute('aria-current');
   if (r.view === 'map') el('nav-map').setAttribute('aria-current', 'page');
   else el('nav-map').removeAttribute('aria-current');
   if (r.view === 'events') el('nav-events').setAttribute('aria-current', 'page');
@@ -809,6 +811,35 @@ async function poll() {
     renderDevHeader();
     void loadHistory();
   }
+}
+
+/* ===== Real-time SSE: server kicks on stored events / sample flushes ===== */
+function reloadEventsForView() {
+  const r = route();
+  if (r.view === 'events') void loadEvents();
+  else if (r.view === 'device') void loadDeviceEvents(r.name);
+  else void loadHomeEvents();
+}
+
+let eventsReloadTimer = null;
+function connectEventStream() {
+  if (MOCK || typeof EventSource === 'undefined') return;
+  const stream = new EventSource(API_BASE + 'api/events/stream');
+  stream.onmessage = () => {
+    clearTimeout(eventsReloadTimer);
+    eventsReloadTimer = setTimeout(reloadEventsForView, 400);
+  };
+}
+
+// Sample flush (<=10s cadence) re-runs poll(): sidebar + LQI charts + home trend.
+let samplesReloadTimer = null;
+function connectSampleStream() {
+  if (MOCK || typeof EventSource === 'undefined') return;
+  const stream = new EventSource(API_BASE + 'api/samples/stream');
+  stream.onmessage = () => {
+    clearTimeout(samplesReloadTimer);
+    samplesReloadTimer = setTimeout(() => void poll(), 300);
+  };
 }
 
 /* ===== Sidebar resize ===== */
@@ -900,6 +931,8 @@ function init() {
   onRoute();
   void poll();
   setInterval(() => void poll(), 15000);
+  connectEventStream();
+  connectSampleStream();
 }
 
 I18n.ready.then(init);

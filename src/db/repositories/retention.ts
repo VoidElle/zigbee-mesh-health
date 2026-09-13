@@ -4,7 +4,7 @@ import { config } from '../../config';
 // ponytail: raw SQL here is intentional. INSERT ... SELECT ... GROUP BY ... ON
 // CONFLICT is a set-based op an ORM handles badly (upsert-in-a-loop is O(n)
 // round trips); the upgrade path is what this already is. Keep the weighted
-// average formula byte-for-byte — rewriting it per-row breaks it.
+// average formula byte-for-byte - rewriting it per-row breaks it.
 export async function runRetentionOnce(): Promise<void> {
   const prisma = getPrisma();
   const cutoff = new Date(Date.now() - config.retentionDays * 24 * 60 * 60 * 1000).toISOString();

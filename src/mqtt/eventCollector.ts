@@ -4,7 +4,7 @@ import { insertEvent, type EventType } from '../db/repositories/events';
 import { getValue, setValue, withKeyLock } from '../db/repositories/runtimeState';
 import { setDeviceIeee } from './lqiCollector';
 
-// Channel 3 (spec §3.3) — Z2M bridge logging + info ingestion.
+// Channel 3 (spec §3.3) - Z2M bridge logging + info ingestion.
 // Subscribes only; never publishes.
 
 interface LoggingPayload {
@@ -31,12 +31,12 @@ interface BridgeEventPayload {
 
 // Classification heuristic, checked in order (first match wins) so that
 // route vs delivery failures stay separated:
-//   1. route_failure      — message mentions routing/no-route problems
-//   2. delivery_failure   — publish/delivery/send errors, or any level==='error'
+//   1. route_failure      - message mentions routing/no-route problems
+//   2. delivery_failure   - publish/delivery/send errors, or any level==='error'
 //                           line that matched nothing above (generic errors)
-//   3. device_leave       — device announced leave / left the network
-//   4. bridge_restart     — bridge start/restart/shutdown lines
-//   5. other              — everything else (kept, never dropped)
+//   3. device_leave       - device announced leave / left the network
+//   4. bridge_restart     - bridge start/restart/shutdown lines
+//   5. other              - everything else (kept, never dropped)
 export function classifyLogging(message: string, level: string): EventType {
   const l = message.toLowerCase();
   if (/(no network route|route (error|fail|routing)|(failed|unable) to route|routing (error|fail|lost))/.test(l)) {
@@ -88,7 +88,7 @@ export async function handleLogging(payload: Buffer): Promise<void> {
 }
 
 // bridge/event is published by Z2M for every device lifecycle change
-// (join, leave, announce, interview) — structured JSON, no Z2M config needed.
+// (join, leave, announce, interview) - structured JSON, no Z2M config needed.
 export async function handleBridgeEvent(payload: Buffer): Promise<void> {
   let parsed: unknown;
   try {

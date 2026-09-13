@@ -1,6 +1,6 @@
 # zigbee-mesh-health
 
-Passive LQI and routing-health monitor for Zigbee2MQTT — tracks link quality over time and flags degrading devices before they fail, **without adding extra radio traffic** to your mesh.
+Passive LQI and routing-health monitor for Zigbee2MQTT - tracks link quality over time and flags degrading devices before they fail, **without adding extra radio traffic** to your mesh.
 
 ## What it does
 
@@ -10,13 +10,13 @@ A small self-hosted Node.js service that subscribes to your Zigbee2MQTT broker, 
 
 | # | Channel | Frequency | Cost |
 |---|---------|-----------|------|
-| 1 | **Passive LQI** — subscribes `<base_topic>/+`, extracts `linkquality` from normal device messages | continuous | zero extra radio traffic |
-| 2 | **Networkmap** — publishes `bridge/request/networkmap` with payload `"raw"` | 1/day scheduled (default 04:00) + manual trigger rate-limited to 1/hour | heavy |
-| 3 | **Bridge events** — subscribes `bridge/event` (device leaves/joins/announces), `bridge/logging` (route/delivery failures, restarts) and `bridge/info` (version/coordinator changes) | continuous | negligible |
+| 1 | **Passive LQI** - subscribes `<base_topic>/+`, extracts `linkquality` from normal device messages | continuous | zero extra radio traffic |
+| 2 | **Networkmap** - publishes `bridge/request/networkmap` with payload `"raw"` | 1/day scheduled (default 04:00) + manual trigger rate-limited to 1/hour | heavy |
+| 3 | **Bridge events** - subscribes `bridge/event` (device leaves/joins/announces), `bridge/logging` (route/delivery failures, restarts) and `bridge/info` (version/coordinator changes) | continuous | negligible |
 
-**Why the networkmap must be rare:** it runs an *active* LQI scan — the coordinator interrogates every router on the mesh in sequence, generating additional radio traffic, and can take minutes with partial failures on unstable networks. Hammering it degrades the very network you're monitoring. That's why this app hard-caps it: one scheduled scan per day, no retry-on-timeout (the next scheduled run retries), and a server-side rate limit of minimum 1 hour between manual triggers. The manual trigger consumes the rate-limit window even when it fails, so a broken bridge can't be hammered. The snapshot is used only for the map view, never as a source for the continuous trend.
+**Why the networkmap must be rare:** it runs an *active* LQI scan - the coordinator interrogates every router on the mesh in sequence, generating additional radio traffic, and can take minutes with partial failures on unstable networks. Hammering it degrades the very network you're monitoring. That's why this app hard-caps it: one scheduled scan per day, no retry-on-timeout (the next scheduled run retries), and a server-side rate limit of minimum 1 hour between manual triggers. The manual trigger consumes the rate-limit window even when it fails, so a broken bridge can't be hammered. The snapshot is used only for the map view, never as a source for the continuous trend.
 
-**Getting log-based events:** Zigbee2MQTT publishes its log to `bridge/logging` only when its config includes mqtt in the output — `log: { output: ['console', 'file', 'mqtt'] }`; with the default output the topic stays silent, and only `bridge/event` and `bridge/info` events are recorded. Unmatched debug-level log lines are ignored, so enabling `log_level: debug` alongside mqtt output does not flood the event log.
+**Getting log-based events:** Zigbee2MQTT publishes its log to `bridge/logging` only when its config includes mqtt in the output - `log: { output: ['console', 'file', 'mqtt'] }`; with the default output the topic stays silent, and only `bridge/event` and `bridge/info` events are recorded. Unmatched debug-level log lines are ignored, so enabling `log_level: debug` alongside mqtt output does not flood the event log.
 
 ## Configuration
 
@@ -31,7 +31,7 @@ All via environment variables:
 | `HTTP_PORT` | `8080` | Express API/UI port |
 | `DATA_DIR` | `./data` | Directory for the SQLite file |
 | `NETWORKMAP_SCHEDULE` | `04:00` | Daily networkmap time, `HH:MM` (pick a low-traffic hour) |
-| `NETWORKMAP_TIMEOUT_MS` | `180000` | Wait before giving up on a networkmap response (no retry — next schedule retries) |
+| `NETWORKMAP_TIMEOUT_MS` | `180000` | Wait before giving up on a networkmap response (no retry - next schedule retries) |
 | `LQI_WARNING_THRESHOLD_PCT` | `20` | **Warning** when the 24h average LQI drops more than this % below the 7-day average (device is degrading) |
 | `LQI_CRITICAL_ABSOLUTE` | `50` | **Critical** when the 24h average LQI falls below this absolute value (link nearly dead) |
 | `ROUTE_FAILURE_CRITICAL_COUNT` | `5` | **Critical** when a device has this many route/delivery failures in the last 24h |
@@ -48,8 +48,10 @@ All via environment variables:
 | `GET /api/devices/{name}/history?range=24h\|7d\|30d` | LQI time series for one device |
 | `GET /api/mesh/history?range=24h\|7d\|30d` | Mesh-wide average LQI over time (~96 buckets) |
 | `GET /api/events?type=&since=` | Event log, filterable by type and time window (`24h`/`7d`/`30d` or ISO date) |
+| `GET /api/events/stream` | Server-Sent Events; pushes a kick whenever an event is stored (frontend re-fetches) |
+| `GET /api/samples/stream` | Server-Sent Events; pushes a kick per LQI sample flush (frontend re-polls) |
 | `GET /api/network/latest` | Last networkmap snapshot (404 until the first scan completes) |
-| `POST /api/network/refresh` | Manual networkmap trigger — rate-limited to 1/hour (429 if too soon, 409 if one is in flight) |
+| `POST /api/network/refresh` | Manual networkmap trigger - rate-limited to 1/hour (429 if too soon, 409 if one is in flight) |
 | `GET /api/health` | Service status: MQTT connection, last sample, last snapshot |
 
 The web UI is served from the same process at `/`.
@@ -72,13 +74,13 @@ Design tokens/theme/base live in `src/styles/tailwind.css`; utility classes go i
 npm run css        # or: npm run css:watch
 ```
 
-`public/styles.css` is generated and committed — include the regenerated file in your commit. Same after any markup/class change: run `npm run css` and commit `public/styles.css`.
+`public/styles.css` is generated and committed - include the regenerated file in your commit. Same after any markup/class change: run `npm run css` and commit `public/styles.css`.
 
-UI strings live in `public/i18n/{it,en}.json` as flat `"a.b"` keys; `public/i18n.js` is the runtime (`t()`, `data-i18n*` attributes, `localStorage.lang`). The flag switcher sits top-right, persists the choice, and defaults from the browser language. To add a language: drop `public/i18n/<code>.json` and add `<code>` to the `LANGS` array in `public/i18n.js` (`LOCALES` maps it to a BCP-47 tag used for dates). Keep `it.json`/`en.json` keys in sync — `test/i18n.test.mjs` enforces parity.
+UI strings live in `public/i18n/{it,en}.json` as flat `"a.b"` keys; `public/i18n.js` is the runtime (`t()`, `data-i18n*` attributes, `localStorage.lang`). The flag switcher sits top-right, persists the choice, and defaults from the browser language. To add a language: drop `public/i18n/<code>.json` and add `<code>` to the `LANGS` array in `public/i18n.js` (`LOCALES` maps it to a BCP-47 tag used for dates). Keep `it.json`/`en.json` keys in sync - `test/i18n.test.mjs` enforces parity.
 
 ### Tests
 
-The suite uses Node's built-in test runner (`node:test`) against the compiled `dist/` output — no extra dependencies:
+The suite uses Node's built-in test runner (`node:test`) against the compiled `dist/` output - no extra dependencies:
 
 ```bash
 npm test   # runs `npm run build`, then `node --test test/*.test.mjs`
@@ -101,21 +103,21 @@ This repo doubles as an **add-on repository**. Two ways to install:
 **A. From the published repository (prebuilt images):**
 1. HA UI: *Settings → Add-ons → Add-on Store → ⋮ (top right) → Repositories* → add `https://github.com/VoidElle/zigbee-mesh-health`.
 2. Refresh the store → **Zigbee Mesh Health** appears → **Install**. Prebuilt multi-arch images (aarch64/amd64/armv7/i386) are pulled from GHCR, so nothing is compiled on the HA box.
-3. Start the Mosquitto broker add-on (or use an external broker — see options), set options on the add-on **Configuration** tab, then **Start**. The **Log** should show `Starting zigbee-mesh-health (broker ...)`.
+3. Start the Mosquitto broker add-on (or use an external broker - see options), set options on the add-on **Configuration** tab, then **Start**. The **Log** should show `Starting zigbee-mesh-health (broker ...)`.
 
 **B. Local repository (no GHCR needed):**
 1. Clone this repo on the HA host (HAOS: via the SSH/Samba add-on, e.g. to `/addons/zigbee-mesh-health`; Container: next to the HA config dir).
-2. Remove the `image:` line from `addon/config.yaml` — otherwise the store tries to pull from GHCR.
-3. Add the **full local path** to the cloned repo (the directory containing `repository.yaml`) under *Repositories*, refresh, install. The image is built on the HA machine itself — takes minutes on ARM due to better-sqlite3.
+2. Remove the `image:` line from `addon/config.yaml` - otherwise the store tries to pull from GHCR.
+3. Add the **full local path** to the cloned repo (the directory containing `repository.yaml`) under *Repositories*, refresh, install. The image is built on the HA machine itself - takes minutes on ARM due to better-sqlite3.
 
-The dashboard opens from the HA sidebar as **Zigbee Mesh Health** (ingress — authenticated with your HA login, no extra credentials or exposed ports). All options are documented in [`addon/DOCS.md`](addon/DOCS.md); leave `mqtt_host` empty to auto-discover the Mosquitto broker add-on.
+The dashboard opens from the HA sidebar as **Zigbee Mesh Health** (ingress - authenticated with your HA login, no extra credentials or exposed ports). All options are documented in [`addon/DOCS.md`](addon/DOCS.md); leave `mqtt_host` empty to auto-discover the Mosquitto broker add-on.
 
-**Releasing (version single-source rule):** a release is a git tag. Pushing a tag like `v1.0.0` triggers the [add-on workflow](.github/workflows/addon.yml), which builds all four arches and publishes them tagged with the `version:` from `addon/config.yaml` (plus `latest`). So before tagging, bump `version` in `addon/config.yaml` **and** `version` in `package.json` — keep the two and the tag in sync. GHCR packages must be set to **public** once (GitHub → Packages → the image → Package settings) or installs will fail with pull errors.
+**Releasing (version single-source rule):** a release is a git tag. Pushing a tag like `v1.0.0` triggers the [add-on workflow](.github/workflows/addon.yml), which builds all four arches and publishes them tagged with the `version:` from `addon/config.yaml` (plus `latest`). So before tagging, bump `version` in `addon/config.yaml` **and** `version` in `package.json` - keep the two and the tag in sync. GHCR packages must be set to **public** once (GitHub → Packages → the image → Package settings) or installs will fail with pull errors.
 
 ## Tuning the alert thresholds
 
-- **Warning (trend-based):** fires when `avg(24h) < avg(7d) × (1 − LQI_WARNING_THRESHOLD_PCT/100)`. Catches slow degradation — a device whose link is getting worse day by day. Lower the % for earlier warning, raise it to reduce noise.
-- **Critical (absolute):** fires when `avg(24h) < LQI_CRITICAL_ABSOLUTE` — the link is nearly unusable now. LQI is 0–255; 50 is a weak link, 100+ is healthy.
-- **Critical (failures):** fires when a device logs `ROUTE_FAILURE_CRITICAL_COUNT` route/delivery failures in 24h — the mesh is actively struggling to reach it, even if LQI still looks acceptable.
+- **Warning (trend-based):** fires when `avg(24h) < avg(7d) × (1 − LQI_WARNING_THRESHOLD_PCT/100)`. Catches slow degradation - a device whose link is getting worse day by day. Lower the % for earlier warning, raise it to reduce noise.
+- **Critical (absolute):** fires when `avg(24h) < LQI_CRITICAL_ABSOLUTE` - the link is nearly unusable now. LQI is 0–255; 50 is a weak link, 100+ is healthy.
+- **Critical (failures):** fires when a device logs `ROUTE_FAILURE_CRITICAL_COUNT` route/delivery failures in 24h - the mesh is actively struggling to reach it, even if LQI still looks acceptable.
 
 Check the events view to correlate a degradation with a `bridge_restart` or `version_change` (firmware/Z2M update) before swapping hardware.

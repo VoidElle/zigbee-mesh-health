@@ -6,6 +6,7 @@
   "health.lastSample": "Ultimo campione: {time}",
   "health.noSample": "Nessun campione ricevuto",
   "nav.devices": "Dispositivi",
+  "nav.home": "Panoramica",
   "nav.map": "Mappa di rete",
   "nav.events": "Eventi",
   "a11y.resizeSidebar": "Ridimensiona barra laterale",

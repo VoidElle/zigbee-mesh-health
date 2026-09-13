@@ -1,4 +1,4 @@
-// !! SPEC §2 — HARD CONSTRAINT !!
+// !! SPEC §2 - HARD CONSTRAINT !!
 // `bridge/request/networkmap` runs an ACTIVE LQI scan: it interrogates every router
 // on the mesh, adds radio traffic, and can take minutes on unstable networks.
 // Max 1–2 requests/day. Never in a frequent polling loop, not even for debugging.
@@ -29,7 +29,7 @@ function ensureSubscribed(): void {
   client.on('message', (topic, payload) => {
     if (topic !== responseTopic) return;
     const resolve = pendingResolve;
-    if (!resolve) return; // stale reply from an already-timed-out request — drop it
+    if (!resolve) return; // stale reply from an already-timed-out request - drop it
     pendingResolve = null;
     void resolve(payload.toString());
   });
@@ -45,7 +45,7 @@ function doRequest(): Promise<MapResult> {
       resolve(result);
     };
     const timer = setTimeout(() => {
-      // Spec §3.2: on timeout log and give up — NO immediate retry;
+      // Spec §3.2: on timeout log and give up - NO immediate retry;
       // the next scheduled run retries.
       pendingResolve = null;
       console.error('[networkmap] timeout waiting for bridge response');

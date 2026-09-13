@@ -1,5 +1,11 @@
+import { EventEmitter } from 'node:events';
 import { getPrisma } from '../client';
 import { config } from '../../config';
+
+// In-process kick channel for the SSE stream: fires once per sample flush.
+// No payload - the frontend re-fetches its current view on each kick.
+export const sampleBus = new EventEmitter();
+sampleBus.setMaxListeners(0);
 
 interface BufferedSample {
   device: string;
@@ -33,6 +39,7 @@ export async function flushSamples(): Promise<void> {
       })),
     }),
   ]);
+  sampleBus.emit('sample');
 }
 
 export function startBatchWriter(): void {
@@ -73,7 +80,7 @@ export async function latestLqiPerDevice(): Promise<
 }
 
 // ponytail: raw samples table only; if a range spans beyond retention, old data
-// lives in linkquality_daily_summary — union it in when daily granularity suffices.
+// lives in linkquality_daily_summary - union it in when daily granularity suffices.
 export async function history(device: string, sinceMs: number): Promise<{ lqi: number; ts: string }[]> {
   const rows = await getPrisma().linkQualitySample.findMany({
     where: { deviceName: device, ts: { gte: new Date(Date.now() - sinceMs) } },
@@ -84,7 +91,7 @@ export async function history(device: string, sinceMs: number): Promise<{ lqi: n
 }
 
 // Mesh-wide average LQI over time, ~96 buckets across the range.
-// ponytail: message-weighted average — chatty devices dominate a bucket;
+// ponytail: message-weighted average - chatty devices dominate a bucket;
 // pre-average per device first if that ever skews the trend visibly.
 // ponytail: strftime/GROUP BY bucketing is awkward in the query builder; raw
 // SQL kept. COUNT/CAST return BigInt (defaultSafeIntegers) → coerce with Number().
