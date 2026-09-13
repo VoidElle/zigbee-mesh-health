@@ -31,7 +31,8 @@ COPY --from=prisma /gen/src/generated ./src/generated
 COPY tsconfig.json ./
 COPY src ./src
 COPY public ./public
-RUN npm run build && npm run css && npm prune --omit=dev
+# No `npm run css` here (see root Dockerfile): committed public/styles.css only.
+RUN npm run build && npm prune --omit=dev
 
 COPY addon/run.sh /
 RUN chmod a+x /run.sh

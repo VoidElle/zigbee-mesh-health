@@ -1,5 +1,6 @@
-@import "tailwindcss";
-@source "../../public/**/*.{html,js}";
+@import "tailwindcss" source(none);
+@source "../../public/index.html";
+@source "../../public/app.js";
 
 @theme {
   --color-base:    #14171A;

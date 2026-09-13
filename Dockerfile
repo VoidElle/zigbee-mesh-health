@@ -20,7 +20,10 @@ RUN npx prisma generate
 
 COPY src ./src
 COPY public ./public
-RUN npm run build && npm run css && npm prune --omit=dev
+# No `npm run css` here: public/styles.css is generated locally and committed.
+# Tailwind v4's lightningcss ships no musl prebuilds for armv7/i386, so running
+# it in-image would fail those arches. Only the JS is built here.
+RUN npm run build && npm prune --omit=dev
 
 ENV DATA_DIR=/app/data
 RUN mkdir -p /app/data

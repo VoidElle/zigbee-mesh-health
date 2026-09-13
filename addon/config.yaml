@@ -1,5 +1,5 @@
 name: Zigbee Mesh Health
-version: "1.0.5"          # keep in sync with package.json version
+version: "1.0.6"          # keep in sync with package.json version
 slug: zigbee_mesh_health
 description: Passive LQI and routing-health monitor for Zigbee2MQTT meshes
 url: https://github.com/lucadelc/zigbee-mesh-health
