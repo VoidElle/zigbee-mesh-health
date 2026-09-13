@@ -1,8 +1,8 @@
 name: Zigbee Mesh Health
-version: "1.0.7"          # keep in sync with package.json version
+version: "1.0.8"          # keep in sync with package.json version
 slug: zigbee_mesh_health
 description: Passive LQI and routing-health monitor for Zigbee2MQTT meshes
-url: https://github.com/lucadelc/zigbee-mesh-health
+url: https://github.com/VoidElle/zigbee-mesh-health
 arch: ["aarch64", "amd64", "armv7", "i386"]
 image: ghcr.io/voidelle/{arch}-zigbee-mesh-health
 startup: services

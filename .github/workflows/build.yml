@@ -58,6 +58,13 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: |
             BUILD_FROM=ghcr.io/home-assistant/${{ matrix.arch }}-base:3.22
+          labels: |
+            io.hass.name=Zigbee Mesh Health
+            io.hass.description=Passive LQI and routing-health monitor for Zigbee2MQTT meshes
+            io.hass.arch=${{ matrix.arch }}
+            io.hass.type=addon
+            io.hass.version=${{ steps.ver.outputs.version }}
+            io.hass.url=https://github.com/VoidElle/zigbee-mesh-health
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/${{ matrix.arch }}-zigbee-mesh-health:${{ steps.ver.outputs.version }}
