@@ -59,7 +59,15 @@
       <section id="view-device" hidden>
         <a class="hidden text-muted no-underline text-label hover:text-ink max-[720px]:inline-block max-[720px]:mb-2" href="#/">← Dispositivi</a>
         <header class="mb-[14px]">
-          <h2 id="dev-name" class="m-0 mb-1 text-title font-semibold">—</h2>
+          <div class="flex items-center gap-2.5">
+            <h2 id="dev-name" class="m-0 text-title font-semibold">—</h2>
+            <button type="button" id="dev-rename-btn" class="text-label px-2 py-0.5" hidden>Rinomina</button>
+          </div>
+          <form id="dev-rename-form" class="flex items-center gap-2 mt-1.5" hidden>
+            <input id="dev-rename-input" type="text" maxlength="60" autocomplete="off" class="bg-panel border border-line text-ink px-2 py-1 text-body" placeholder="Nuovo nome">
+            <button type="submit">Salva</button>
+            <button type="button" id="dev-rename-cancel">Annulla</button>
+          </form>
           <p class="mt-1 mb-0 text-muted text-body flex flex-wrap gap-x-[18px] gap-y-1 items-center" id="dev-data"></p>
         </header>
         <div id="rangebar" class="flex gap-1.5 mb-2.5" role="group" aria-label="Intervallo temporale">

@@ -4,6 +4,7 @@ import { config } from '../config';
 import { runtimeStatus } from '../runtime';
 import { computeDeviceSummaries } from '../analysis/status';
 import { history, listDeviceNames, meshHistory } from '../db/repositories/samples';
+import { getAllAliases, setAlias } from '../db/repositories/aliases';
 import { listEvents, type EventType } from '../db/repositories/events';
 import { getLatestSnapshot } from '../db/repositories/snapshots';
 import { triggerManualRefresh } from '../networkmap';
@@ -38,6 +39,7 @@ function queryStr(req: Request, name: string): string | undefined {
 export function startApi(): void {
   const app = express();
   app.disable('x-powered-by');
+  app.use(express.json());
 
   if (config.apiKey) {
     app.use('/api', (req: Request, res: Response, next) => {
@@ -51,7 +53,28 @@ export function startApi(): void {
   }
 
   app.get('/api/devices', async (_req, res) => {
-    res.json({ devices: await computeDeviceSummaries() });
+    const [devices, aliases] = await Promise.all([computeDeviceSummaries(), getAllAliases()]);
+    res.json({ devices: devices.map((d) => ({ ...d, alias: aliases.get(d.name) ?? null })) });
+  });
+
+  app.put('/api/devices/:name/alias', async (req, res) => {
+    const name = req.params.name;
+    if (!(await listDeviceNames()).includes(name)) {
+      res.status(404).json({ error: 'not found' });
+      return;
+    }
+    const raw = (req.body as { alias?: unknown } | undefined)?.alias;
+    if (raw !== undefined && raw !== null && typeof raw !== 'string') {
+      res.status(400).json({ error: 'invalid alias' });
+      return;
+    }
+    const alias = typeof raw === 'string' ? raw.trim() : '';
+    if (alias.length > 60) {
+      res.status(400).json({ error: 'alias too long' });
+      return;
+    }
+    await setAlias(name, alias || null);
+    res.json({ name, alias: alias || null });
   });
 
   app.get('/api/devices/:name/history', async (req, res) => {

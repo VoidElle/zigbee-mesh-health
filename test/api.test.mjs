@@ -117,3 +117,26 @@ test('golden files and endpoint entries match 1:1', () => {
   const endpointNames = endpoints.map(([n]) => n).sort();
   assert.deepEqual(goldenNames, endpointNames);
 });
+
+test('PUT alias persists, surfaces on /api/devices, and validates input', async () => {
+  const put = (name, body) =>
+    fetch(`${base}/api/devices/${encodeURIComponent(name)}/alias`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+  const ok = await put('Luce', { alias: '  Lampada  ' });
+  assert.equal(ok.status, 200);
+  assert.deepEqual(await ok.json(), { name: 'Luce', alias: 'Lampada' });
+  const devices = await (await fetch(`${base}/api/devices`)).json();
+  assert.equal(devices.devices.find((d) => d.name === 'Luce').alias, 'Lampada');
+
+  assert.equal((await put('Nope', { alias: 'x' })).status, 404);
+  assert.equal((await put('Luce', { alias: 'x'.repeat(61) })).status, 400);
+  assert.equal((await put('Luce', { alias: 42 })).status, 400);
+
+  const clear = await put('Luce', { alias: '' });
+  assert.equal(clear.status, 200);
+  assert.deepEqual(await clear.json(), { name: 'Luce', alias: null });
+});

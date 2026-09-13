@@ -32,6 +32,11 @@ function mockApi(path, opts) {
   const q = new URLSearchParams(path.split('?')[1] || '');
   const now = Date.now();
   if (opts && opts.method === 'POST') return Promise.resolve({ ok: true });
+  if (opts && opts.method === 'PUT') {
+    const m = p.match(/^\/api\/devices\/(.+)\/alias$/);
+    const alias = String((opts.body ? JSON.parse(opts.body).alias : '') ?? '').trim();
+    return Promise.resolve({ name: m ? decodeURIComponent(m[1]) : null, alias: alias || null });
+  }
   if (p === '/api/devices') return Promise.resolve({ devices: MOCK_DEVICES });
   if (p === '/api/health')
     return Promise.resolve({
@@ -126,6 +131,33 @@ let chart = null;
 let hmChart = null;
 let historySeq = 0;
 
+// Aliases are display-only; the canonical Z2M name still keys routes and API calls.
+const dispName = (name) => {
+  const d = state.devices.find((x) => x.name === name);
+  return (d && d.alias) || name;
+};
+const currentAlias = (name) => {
+  const d = state.devices.find((x) => x.name === name);
+  return (d && d.alias) || '';
+};
+async function saveAlias(raw) {
+  const name = state.selected;
+  if (!name) return;
+  try {
+    const r = await api(`/api/devices/${encodeURIComponent(name)}/alias`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ alias: raw.trim() }),
+    });
+    const d = state.devices.find((x) => x.name === name);
+    if (d) d.alias = r.alias ?? null;
+  } catch {
+    // keep the previous name on failure; the user can retry
+  }
+  renderDevHeader();
+  renderSidebar();
+}
+
 function route() {
   const h = location.hash || '';
   if (h.startsWith('#/device/')) return { view: 'device', name: decodeURIComponent(h.slice('#/device/'.length)) };
@@ -144,9 +176,9 @@ function renderSidebar() {
   list.innerHTML = devs.length
     ? devs
         .map(
-          (d) => `<a class="grid grid-cols-[14px_1fr_auto] items-center gap-1 px-[14px] py-[7px] text-ink no-underline border-l-2 border-l-transparent hover:bg-hover aria-[current=page]:bg-hover aria-[current=page]:border-l-warn" href="#/device/${encodeURIComponent(d.name)}"${state.selected === d.name ? ' aria-current="page"' : ''} aria-label="${esc(d.name)}, LQI ${d.currentLqi}, ${STATUS_IT[d.status]}">
+          (d) => `<a class="grid grid-cols-[14px_1fr_auto] items-center gap-1 px-[14px] py-[7px] text-ink no-underline border-l-2 border-l-transparent hover:bg-hover aria-[current=page]:bg-hover aria-[current=page]:border-l-warn" href="#/device/${encodeURIComponent(d.name)}"${state.selected === d.name ? ' aria-current="page"' : ''} aria-label="${esc(dispName(d.name))}, LQI ${d.currentLqi}, ${STATUS_IT[d.status]}">
   <span class="${dotCls(d.status)}"></span>
-  <span class="text-section font-medium truncate" title="${esc(d.name)}">${esc(d.name)}</span>
+  <span class="text-section font-medium truncate" title="${esc(d.name)}">${esc(dispName(d.name))}</span>
   <span class="font-mono text-muted text-body">${d.currentLqi}</span>
 </a>`
         )
@@ -176,7 +208,11 @@ function renderHealth() {
 /* ===== Device detail ===== */
 function renderDevHeader() {
   const d = state.devices.find((x) => x.name === state.selected);
-  el('dev-name').textContent = state.selected || '—';
+  const alias = currentAlias(state.selected);
+  el('dev-name').textContent = state.selected ? dispName(state.selected) : '—';
+  el('dev-rename-btn').hidden = !state.selected;
+  el('dev-rename-form').hidden = true;
+  el('dev-rename-input').placeholder = state.selected || 'Nuovo nome';
   el('dev-data').innerHTML = d
     ? `<span><span class="text-label">LQI attuale </span><span class="font-mono text-ink">${d.currentLqi}</span></span>
 <span><span class="text-label">stato </span><span class="${dotCls(d.status)}"></span> ${STATUS_IT[d.status]}</span>
@@ -184,7 +220,8 @@ function renderDevHeader() {
 <span><span class="text-label">media 7g </span><span class="font-mono text-ink">${d.avg7d != null ? Math.round(d.avg7d) : '—'}</span></span>
 <span><span class="text-label">guasti 24h </span><span class="font-mono text-ink">${d.failures24h}</span></span>
 <span><span class="text-label">ultimo msg </span><span class="font-mono text-ink">${d.lastSeen ? fmtFull(d.lastSeen) : '—'}</span></span>
-<span><span class="text-label">IEEE </span><span class="font-mono text-ink">${d.ieee ? esc(d.ieee) : '—'}</span></span>`
+<span><span class="text-label">IEEE </span><span class="font-mono text-ink">${d.ieee ? esc(d.ieee) : '—'}</span></span>${alias ? `
+<span><span class="text-label">nome Zigbee2MQTT </span><span class="font-mono text-ink">${esc(d.name)}</span></span>` : ''}`
     : '<span>Dispositivo non presente nei dati attuali</span>';
 }
 
@@ -344,7 +381,7 @@ async function loadHistory() {
   chart.options.scales.x.max = now;
   chart.options.plugins.thresholdBands = { critical: CRITICAL_LQI, warning: warnLine() };
   chart.data.datasets[0].data = pts;
-  el('chart').setAttribute('aria-label', `Andamento LQI di ${name}, intervallo ${range}`);
+  el('chart').setAttribute('aria-label', `Andamento LQI di ${dispName(name)}, intervallo ${range}`);
   chart.update();
 }
 
@@ -355,7 +392,7 @@ function eventRow(e) {
   return `<li class="${base}${e.event_type === 'version_change' ? ' border-l-2 border-l-warn bg-version' : ''}">
   <span class="font-mono text-muted text-label">${fmtDateTime(e.ts)}</span>
   <span class="text-ink text-label">${EVENT_IT[e.event_type] || esc(e.event_type)}</span>
-  <span class="text-muted text-label truncate">${e.device_name ? esc(e.device_name) : '—'}</span>
+  <span class="text-muted text-label truncate">${e.device_name ? esc(dispName(e.device_name)) : '—'}</span>
   <span class="text-ink text-label [overflow-wrap:anywhere]">${e.message ? esc(e.message) : ''}</span>
 </li>`;
 }
@@ -491,7 +528,7 @@ function buildMapSvg(value) {
     const fill = isC ? '#E4E7EA' : isR ? '#9AA4AC' : '#6A7480';
     const r = nodeRadius(n, isC);
     const named = nameByIeee.get(key(n));
-    const label = isC ? 'Coordinatore' : named || shortAddr(n);
+    const label = isC ? 'Coordinatore' : named ? dispName(named) : shortAddr(n);
     const mono = !isC && !named;
     nodeSvg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${fill}"><title>${esc(label)}${n.type ? ' · ' + esc(n.type) : ''}</title></circle>
 <text x="${p.x.toFixed(1)}" y="${(p.y + r + 14).toFixed(1)}" text-anchor="middle" fill="${mono ? '#8B939B' : '#E4E7EA'}" font-size="${mono ? 9.5 : 10.5}" font-family="${mono ? "'IBM Plex Mono', Menlo, monospace" : "'IBM Plex Sans', sans-serif"}">${esc(label)}</text>`;
@@ -561,7 +598,7 @@ function renderHomeWatch() {
     .map(
       (d) => `<li><a class="flex items-center flex-wrap gap-x-2.5 gap-y-1.5 px-3 py-[7px] border-b border-line bg-panel text-ink no-underline min-w-0 last:border-b-0 hover:bg-hover" href="#/device/${encodeURIComponent(d.name)}">
   <span class="${dotCls(d.status)}"></span>
-  <span class="font-medium truncate">${esc(d.name)}</span>
+  <span class="font-medium truncate">${esc(dispName(d.name))}</span>
   <span class="font-mono text-muted text-label">LQI ${d.currentLqi} · media 24h ${d.avg24h != null ? Math.round(d.avg24h) : '—'} · media 7g ${d.avg7d != null ? Math.round(d.avg7d) : '—'} · guasti 24h ${d.failures24h}</span>
 </a></li>`
     )
@@ -581,7 +618,7 @@ function renderHomeStale() {
     .map(
       (d) => `<li><a class="flex items-center flex-wrap gap-x-2.5 gap-y-1.5 px-3 py-[7px] border-b border-line bg-panel text-ink no-underline min-w-0 last:border-b-0 hover:bg-hover" href="#/device/${encodeURIComponent(d.name)}">
   <span class="${dotCls('muted')}"></span>
-  <span class="font-medium truncate">${esc(d.name)}</span>
+  <span class="font-medium truncate">${esc(dispName(d.name))}</span>
   <span class="font-mono text-muted text-label">ultimo msg ${d.lastSeen ? fmtFull(d.lastSeen) : 'mai'}</span>
 </a></li>`
     )
@@ -627,7 +664,8 @@ function renderHomeNet() {
   );
   const nm = (ieee) => {
     const k = String(ieee ?? '').toLowerCase();
-    return nameByIeee.get(k) || String(ieee ?? '?').slice(-8);
+    const n0 = nameByIeee.get(k);
+    return n0 ? dispName(n0) : String(ieee ?? '?').slice(-8);
   };
   const weakest = [...links]
     .sort((a, b) => (Number(a.lqi) || 0) - (Number(b.lqi) || 0))
@@ -833,6 +871,19 @@ function init() {
     if (route().view === 'events') void loadEvents();
   });
   el('map-refresh').addEventListener('click', () => void refreshMap());
+  el('dev-rename-btn').addEventListener('click', () => {
+    if (!state.selected) return;
+    el('dev-rename-input').value = currentAlias(state.selected);
+    el('dev-rename-form').hidden = false;
+    el('dev-rename-input').focus();
+  });
+  el('dev-rename-cancel').addEventListener('click', () => {
+    el('dev-rename-form').hidden = true;
+  });
+  el('dev-rename-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    void saveAlias(el('dev-rename-input').value);
+  });
   setupSidebarResize();
   window.addEventListener('hashchange', onRoute);
   onRoute();

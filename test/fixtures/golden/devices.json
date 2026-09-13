@@ -10,7 +10,8 @@
         "avg24h": 124.2,
         "avg7d": 133.25,
         "failures24h": 2,
-        "lastSeen": "TS"
+        "lastSeen": "TS",
+        "alias": null
       },
       {
         "name": "OldDev",
@@ -20,7 +21,8 @@
         "avg24h": null,
         "avg7d": null,
         "failures24h": 0,
-        "lastSeen": "TS"
+        "lastSeen": "TS",
+        "alias": null
       },
       {
         "name": "Plug",
@@ -30,7 +32,8 @@
         "avg24h": 205,
         "avg7d": 207.5,
         "failures24h": 3,
-        "lastSeen": "TS"
+        "lastSeen": "TS",
+        "alias": null
       },
       {
         "name": "Sensore",
@@ -40,7 +43,8 @@
         "avg24h": 85,
         "avg7d": 90,
         "failures24h": 1,
-        "lastSeen": "TS"
+        "lastSeen": "TS",
+        "alias": null
       }
     ]
   }
