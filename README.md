@@ -72,7 +72,9 @@ Design tokens/theme/base live in `src/styles/tailwind.css`; utility classes go i
 npm run css        # or: npm run css:watch
 ```
 
-`public/styles.css` is generated and committed — include the regenerated file in your commit.
+`public/styles.css` is generated and committed — include the regenerated file in your commit. Same after any markup/class change: run `npm run css` and commit `public/styles.css`.
+
+UI strings live in `public/i18n/{it,en}.json` as flat `"a.b"` keys; `public/i18n.js` is the runtime (`t()`, `data-i18n*` attributes, `localStorage.lang`). The flag switcher sits top-right, persists the choice, and defaults from the browser language. To add a language: drop `public/i18n/<code>.json` and add `<code>` to the `LANGS` array in `public/i18n.js` (`LOCALES` maps it to a BCP-47 tag used for dates). Keep `it.json`/`en.json` keys in sync — `test/i18n.test.mjs` enforces parity.
 
 ### Tests
 

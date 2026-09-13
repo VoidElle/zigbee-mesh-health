@@ -28,6 +28,7 @@
   button, select {
     @apply font-sans text-body bg-panel border border-line text-ink py-1.5 px-3.5 cursor-pointer;
   }
+  .lang-btn { @apply p-0 bg-transparent border-0 leading-none rounded-none; }
   button:hover:not(:disabled) { @apply border-muted; }
   button:disabled { @apply text-muted cursor-not-allowed; }
   :focus-visible { outline: 2px solid var(--color-warn); outline-offset: 2px; }

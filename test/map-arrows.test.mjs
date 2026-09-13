@@ -5,11 +5,21 @@ import { readFileSync } from 'node:fs';
 
 test('buildMapSvg renders arrows and markers', () => {
   const src = readFileSync(new URL('../public/app.js', import.meta.url), 'utf8')
-    .replace(/\ninit\(\);\s*$/, '');
+    .replace(/\n(?:init\(\)|I18n\.ready\.then\(init\));\s*$/, '');
 
+  const en = JSON.parse(readFileSync(new URL('../public/i18n/en.json', import.meta.url), 'utf8'));
   const stubDoc = { querySelector: () => null, querySelectorAll: () => [], addEventListener() {}, getElementById: () => null };
-  const make = new Function('location', 'document', 'window', src + '\nreturn { buildMapSvg };');
-  const { buildMapSvg } = make({ search: '', pathname: '/' }, stubDoc, { addEventListener() {} });
+  const stubI18n = {
+    t: (k) => en[k] ?? k,
+    locale: 'en-GB',
+    getLang: () => 'en',
+    ready: Promise.resolve(),
+    setLang: () => Promise.resolve(),
+    onChange: () => () => {},
+    apply() {},
+  };
+  const make = new Function('location', 'document', 'window', 'I18n', src + '\nreturn { buildMapSvg };');
+  const { buildMapSvg } = make({ search: '', pathname: '/' }, stubDoc, { addEventListener() {} }, stubI18n);
 
   const value = {
     nodes: [
@@ -33,5 +43,6 @@ test('buildMapSvg renders arrows and markers', () => {
   assert.equal(marked, links, `expected all ${links} lines arrowed, got ${marked}`);
   assert.ok(svg.includes('arrow-crit'), 'weak link (lqi 31) should use arrow-crit');
   assert.ok(svg.includes('arrow-ok'), 'strong link (lqi 132) should use arrow-ok');
+  assert.match(svg, /<text[^>]*>Coordinator<\/text>/, 'coordinator label comes from the i18n catalog');
   assert.equal(buildMapSvg({ nodes: [], links: [] }), '', 'empty map should render empty string');
 });

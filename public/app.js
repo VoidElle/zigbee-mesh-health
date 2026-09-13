@@ -104,27 +104,22 @@ async function api(path, opts) {
 const el = (id) => document.getElementById(id);
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const t = (k, p) => I18n.t(k, p);
 const dotCls = (s) =>
   'inline-block w-2 h-2 rounded-full flex-none ' +
   ({ ok: 'bg-ok', warning: 'bg-warn', critical: 'bg-crit' }[s] || 'bg-muted');
-const fmtTime = (ts) => new Date(ts).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-const fmtDateTime = (ts) => new Date(ts).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
-const fmtFull = (ts) => new Date(ts).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const fmtTime = (ts) => new Date(ts).toLocaleTimeString(I18n.locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const fmtDateTime = (ts) => new Date(ts).toLocaleString(I18n.locale, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+const fmtFull = (ts) => new Date(ts).toLocaleString(I18n.locale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 // LQI_CRITICAL_ABSOLUTE / LQI_WARNING_THRESHOLD_PCT defaults (API v1 does not expose configured values)
 const CRITICAL_LQI = 50;
 const WARNING_PCT = 20;
 const RANK = { critical: 0, warning: 1, ok: 2 };
-const STATUS_IT = { ok: 'ok', warning: 'attenzione', critical: 'critico' };
-const EVENT_IT = {
-  route_failure: 'Guasto route',
-  delivery_failure: 'Consegna fallita',
-  device_leave: 'Uscita dispositivo',
-  bridge_restart: 'Restart bridge',
-  version_change: 'Cambio versione',
-  state_change: 'Cambio stato',
-  other: 'Altro',
-};
+const KNOWN_STATUS = ['ok', 'warning', 'critical'];
+const statusLabel = (s) => t(`status.${KNOWN_STATUS.includes(s) ? s : 'ok'}`);
+const KNOWN_EVENTS = ['route_failure', 'delivery_failure', 'device_leave', 'bridge_restart', 'version_change', 'state_change', 'other'];
+const eventLabel = (e) => (KNOWN_EVENTS.includes(e) ? t(`event.${e}`) : esc(e));
 
 const state = { devices: [], health: null, snap: null, selected: null, range: '24h' };
 let chart = null;
@@ -176,14 +171,14 @@ function renderSidebar() {
   list.innerHTML = devs.length
     ? devs
         .map(
-          (d) => `<a class="grid grid-cols-[14px_1fr_auto] items-center gap-1 px-[14px] py-[7px] text-ink no-underline border-l-2 border-l-transparent hover:bg-hover aria-[current=page]:bg-hover aria-[current=page]:border-l-warn" href="#/device/${encodeURIComponent(d.name)}"${state.selected === d.name ? ' aria-current="page"' : ''} aria-label="${esc(dispName(d.name))}, LQI ${d.currentLqi}, ${STATUS_IT[d.status]}">
+          (d) => `<a class="grid grid-cols-[14px_1fr_auto] items-center gap-1 px-[14px] py-[7px] text-ink no-underline border-l-2 border-l-transparent hover:bg-hover aria-[current=page]:bg-hover aria-[current=page]:border-l-warn" href="#/device/${encodeURIComponent(d.name)}"${state.selected === d.name ? ' aria-current="page"' : ''} aria-label="${esc(t('sidebar.deviceAria', { name: dispName(d.name), lqi: d.currentLqi, status: statusLabel(d.status) }))}">
   <span class="${dotCls(d.status)}"></span>
   <span class="text-section font-medium truncate" title="${esc(d.name)}">${esc(dispName(d.name))}</span>
   <span class="font-mono text-muted text-body">${d.currentLqi}</span>
 </a>`
         )
         .join('')
-    : '<p class="p-[14px] text-muted text-label">Nessun dispositivo. In attesa di dati da Zigbee2MQTT…</p>';
+    : `<p class="p-[14px] text-muted text-label">${esc(t('sidebar.empty'))}</p>`;
   list.scrollTop = top;
 }
 
@@ -193,16 +188,16 @@ function renderHealth() {
   const sub = el('health-sample');
   if (!state.health) {
     dot.className = dotCls('muted');
-    text.textContent = 'Servizio non raggiungibile';
+    text.textContent = t('health.unreachable');
     sub.hidden = true;
     return;
   }
   dot.className = dotCls(state.health.mqttConnected ? 'ok' : 'critical');
-  text.textContent = state.health.mqttConnected ? 'MQTT collegato' : 'MQTT non collegato';
+  text.textContent = state.health.mqttConnected ? t('health.mqttConnected') : t('health.mqttDisconnected');
   sub.hidden = false;
   sub.textContent = state.health.lastSampleAt
-    ? 'Ultimo campione: ' + fmtTime(state.health.lastSampleAt)
-    : 'Nessun campione ricevuto';
+    ? t('health.lastSample', { time: fmtTime(state.health.lastSampleAt) })
+    : t('health.noSample');
 }
 
 /* ===== Device detail ===== */
@@ -212,17 +207,17 @@ function renderDevHeader() {
   el('dev-name').textContent = state.selected ? dispName(state.selected) : '—';
   el('dev-rename-btn').hidden = !state.selected;
   el('dev-rename-form').hidden = true;
-  el('dev-rename-input').placeholder = state.selected || 'Nuovo nome';
+  el('dev-rename-input').placeholder = state.selected || t('device.renamePlaceholder');
   el('dev-data').innerHTML = d
-    ? `<span><span class="text-label">LQI attuale </span><span class="font-mono text-ink">${d.currentLqi}</span></span>
-<span><span class="text-label">stato </span><span class="${dotCls(d.status)}"></span> ${STATUS_IT[d.status]}</span>
-<span><span class="text-label">media 24h </span><span class="font-mono text-ink">${d.avg24h != null ? Math.round(d.avg24h) : '—'}</span></span>
-<span><span class="text-label">media 7g </span><span class="font-mono text-ink">${d.avg7d != null ? Math.round(d.avg7d) : '—'}</span></span>
-<span><span class="text-label">guasti 24h </span><span class="font-mono text-ink">${d.failures24h}</span></span>
-<span><span class="text-label">ultimo msg </span><span class="font-mono text-ink">${d.lastSeen ? fmtFull(d.lastSeen) : '—'}</span></span>
+    ? `<span><span class="text-label">${t('device.currentLqi')} </span><span class="font-mono text-ink">${d.currentLqi}</span></span>
+<span><span class="text-label">${t('device.status')} </span><span class="${dotCls(d.status)}"></span> ${statusLabel(d.status)}</span>
+<span><span class="text-label">${t('device.avg24h')} </span><span class="font-mono text-ink">${d.avg24h != null ? Math.round(d.avg24h) : '—'}</span></span>
+<span><span class="text-label">${t('device.avg7d')} </span><span class="font-mono text-ink">${d.avg7d != null ? Math.round(d.avg7d) : '—'}</span></span>
+<span><span class="text-label">${t('device.failures24h')} </span><span class="font-mono text-ink">${d.failures24h}</span></span>
+<span><span class="text-label">${t('device.lastSeen')} </span><span class="font-mono text-ink">${d.lastSeen ? fmtFull(d.lastSeen) : '—'}</span></span>
 <span><span class="text-label">IEEE </span><span class="font-mono text-ink">${d.ieee ? esc(d.ieee) : '—'}</span></span>${alias ? `
-<span><span class="text-label">nome Zigbee2MQTT </span><span class="font-mono text-ink">${esc(d.name)}</span></span>` : ''}`
-    : '<span>Dispositivo non presente nei dati attuali</span>';
+<span><span class="text-label">${t('device.z2mName')} </span><span class="font-mono text-ink">${esc(d.name)}</span></span>` : ''}`
+    : `<span>${t('device.notInData')}</span>`;
 }
 
 function renderDeviceDetail(name) {
@@ -289,8 +284,8 @@ function fmtTick(v, range) {
   const d = new Date(v);
   const rg = range || state.range;
   return rg === '24h'
-    ? d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
-    : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
+    ? d.toLocaleTimeString(I18n.locale, { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString(I18n.locale, { day: '2-digit', month: '2-digit' });
 }
 
 function applyChartDefaults() {
@@ -301,7 +296,7 @@ function applyChartDefaults() {
 
 function createChart() {
   if (typeof Chart === 'undefined') {
-    showChartEmpty('Chart.js non caricato');
+    showChartEmpty(t('common.chartNotLoaded'));
     return null;
   }
   applyChartDefaults();
@@ -363,13 +358,13 @@ async function loadHistory() {
   try {
     data = await api(`/api/devices/${encodeURIComponent(name)}/history?range=${range}`);
   } catch (e) {
-    if (seq === historySeq) showChartEmpty('Dispositivo non trovato nella rete.');
+    if (seq === historySeq) showChartEmpty(t('device.notFound'));
     return;
   }
   if (seq !== historySeq) return;
   const pts = (data.points || []).map((p) => ({ x: +new Date(p.ts), y: p.lqi }));
   if (!pts.length) {
-    showChartEmpty('Ancora nessun campione raccolto per questo dispositivo');
+    showChartEmpty(t('device.noSamples'));
     return;
   }
   el('chart-empty').hidden = true;
@@ -381,7 +376,7 @@ async function loadHistory() {
   chart.options.scales.x.max = now;
   chart.options.plugins.thresholdBands = { critical: CRITICAL_LQI, warning: warnLine() };
   chart.data.datasets[0].data = pts;
-  el('chart').setAttribute('aria-label', `Andamento LQI di ${dispName(name)}, intervallo ${range}`);
+  el('chart').setAttribute('aria-label', t('device.historyAria', { name: dispName(name), range }));
   chart.update();
 }
 
@@ -391,7 +386,7 @@ function eventRow(e) {
     'grid grid-cols-[132px_148px_minmax(110px,0.35fr)_1fr] gap-2.5 px-3 py-[7px] border-b border-line bg-panel min-w-0 last:border-b-0 max-[720px]:grid-cols-[108px_1fr] max-[720px]:grid-rows-[auto_auto]';
   return `<li class="${base}${e.event_type === 'version_change' ? ' border-l-2 border-l-warn bg-version' : ''}">
   <span class="font-mono text-muted text-label">${fmtDateTime(e.ts)}</span>
-  <span class="text-ink text-label">${EVENT_IT[e.event_type] || esc(e.event_type)}</span>
+  <span class="text-ink text-label">${eventLabel(e.event_type)}</span>
   <span class="text-muted text-label truncate">${e.device_name ? esc(dispName(e.device_name)) : '—'}</span>
   <span class="text-ink text-label [overflow-wrap:anywhere]">${e.message ? esc(e.message) : ''}</span>
 </li>`;
@@ -405,9 +400,9 @@ async function loadDeviceEvents(name) {
     const rows = (d.events || []).filter((e) => e.device_name === name).slice(0, 30);
     ul.innerHTML = rows.length
       ? rows.map(eventRow).join('')
-      : '<li class="grid grid-cols-1 text-muted px-3 py-[7px] border-b border-line bg-panel">Nessun evento recente per questo dispositivo.</li>';
+      : `<li class="grid grid-cols-1 text-muted px-3 py-[7px] border-b border-line bg-panel">${t('device.noEvents')}</li>`;
   } catch {
-    ul.innerHTML = '<li class="grid grid-cols-1 text-muted px-3 py-[7px] border-b border-line bg-panel">Eventi non disponibili.</li>';
+    ul.innerHTML = `<li class="grid grid-cols-1 text-muted px-3 py-[7px] border-b border-line bg-panel">${t('common.eventsUnavailable')}</li>`;
   }
 }
 
@@ -423,11 +418,11 @@ async function loadEvents() {
   try {
     const d = await api('/api/events?' + q.toString());
     const rows = d.events || [];
-    empty.textContent = 'Nessun evento nel periodo selezionato.';
+    empty.textContent = t('events.empty');
     empty.hidden = rows.length > 0;
     ul.innerHTML = rows.map(eventRow).join('');
   } catch {
-    empty.textContent = 'Eventi non disponibili.';
+    empty.textContent = t('common.eventsUnavailable');
     empty.hidden = false;
   }
 }
@@ -528,13 +523,13 @@ function buildMapSvg(value) {
     const fill = isC ? '#E4E7EA' : isR ? '#9AA4AC' : '#6A7480';
     const r = nodeRadius(n, isC);
     const named = nameByIeee.get(key(n));
-    const label = isC ? 'Coordinatore' : named ? dispName(named) : shortAddr(n);
+    const label = isC ? t('map.coordinator') : named ? dispName(named) : shortAddr(n);
     const mono = !isC && !named;
     nodeSvg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${fill}"><title>${esc(label)}${n.type ? ' · ' + esc(n.type) : ''}</title></circle>
 <text x="${p.x.toFixed(1)}" y="${(p.y + r + 14).toFixed(1)}" text-anchor="middle" fill="${mono ? '#8B939B' : '#E4E7EA'}" font-size="${mono ? 9.5 : 10.5}" font-family="${mono ? "'IBM Plex Mono', Menlo, monospace" : "'IBM Plex Sans', sans-serif"}">${esc(label)}</text>`;
   }
 
-  return `<svg class="block w-full h-auto" viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mappa della rete Zigbee">${defs}${edges}${nodeSvg}</svg>`;
+  return `<svg class="block w-full h-auto" viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${t('map.ariaLabel')}">${defs}${edges}${nodeSvg}</svg>`;
 }
 
 async function loadMap() {
@@ -560,15 +555,15 @@ async function refreshMap() {
   const msg = el('map-msg');
   btn.disabled = true;
   msg.hidden = false;
-  msg.textContent = "Scansione in corso… l'operazione può richiedere alcuni minuti.";
+  msg.textContent = t('map.scanning');
   try {
     await api('/api/network/refresh', { method: 'POST' });
-    msg.textContent = 'Snapshot aggiornato.';
+    msg.textContent = t('map.updated');
     await loadMap();
   } catch (e) {
-    if (e.status === 429) msg.textContent = "Richiesta rifiututa: al massimo una scansione manuale all'ora.";
-    else if (e.status === 409) msg.textContent = 'Una scansione è già in corso.';
-    else msg.textContent = 'Scansione non riuscita (' + (e.message || 'errore') + ').';
+    if (e.status === 429) msg.textContent = t('map.rateLimited');
+    else if (e.status === 409) msg.textContent = t('map.inFlight');
+    else msg.textContent = t('map.failed', { error: e.message || 'errore' });
   } finally {
     btn.disabled = false;
   }
@@ -581,12 +576,12 @@ function renderHomeStats() {
   const avgLqi = ds.length ? Math.round(ds.reduce((a, d) => a + d.currentLqi, 0) / ds.length) : null;
   const fails = ds.reduce((a, d) => a + (d.failures24h || 0), 0);
   el('hm-stats').innerHTML = `
-    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]">${ds.length}</span><span class="text-label text-muted">Dispositivi</span></div>
-    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-ok">${n('ok')}</span><span class="text-label text-muted">Ok</span></div>
-    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-warn">${n('warning')}</span><span class="text-label text-muted">Attenzione</span></div>
-    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-crit">${n('critical')}</span><span class="text-label text-muted">Critici</span></div>
-    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]" style="color:${statusColorLqi(avgLqi ?? 0, null)}">${avgLqi != null ? avgLqi : '—'}</span><span class="text-label text-muted">LQI medio</span></div>
-    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]${fails > 0 ? ' text-crit' : ''}">${fails}</span><span class="text-label text-muted">Guasti 24h</span></div>`;
+    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]">${ds.length}</span><span class="text-label text-muted">${t('home.statDevices')}</span></div>
+    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-ok">${n('ok')}</span><span class="text-label text-muted">${t('home.statOk')}</span></div>
+    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-warn">${n('warning')}</span><span class="text-label text-muted">${t('home.statWarning')}</span></div>
+    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px] text-crit">${n('critical')}</span><span class="text-label text-muted">${t('home.statCritical')}</span></div>
+    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]" style="color:${statusColorLqi(avgLqi ?? 0, null)}">${avgLqi != null ? avgLqi : '—'}</span><span class="text-label text-muted">${t('home.statAvg')}</span></div>
+    <div class="bg-panel border border-line px-[14px] py-2.5 flex flex-col gap-0.5"><span class="font-mono text-[22px]${fails > 0 ? ' text-crit' : ''}">${fails}</span><span class="text-label text-muted">${t('home.statFailures')}</span></div>`;
   el('home-empty').hidden = ds.length > 0;
 }
 
@@ -599,7 +594,7 @@ function renderHomeWatch() {
       (d) => `<li><a class="flex items-center flex-wrap gap-x-2.5 gap-y-1.5 px-3 py-[7px] border-b border-line bg-panel text-ink no-underline min-w-0 last:border-b-0 hover:bg-hover" href="#/device/${encodeURIComponent(d.name)}">
   <span class="${dotCls(d.status)}"></span>
   <span class="font-medium truncate">${esc(dispName(d.name))}</span>
-  <span class="font-mono text-muted text-label">LQI ${d.currentLqi} · media 24h ${d.avg24h != null ? Math.round(d.avg24h) : '—'} · media 7g ${d.avg7d != null ? Math.round(d.avg7d) : '—'} · guasti 24h ${d.failures24h}</span>
+  <span class="font-mono text-muted text-label">${t('home.watchLine', { lqi: d.currentLqi, avg24h: d.avg24h != null ? Math.round(d.avg24h) : '—', avg7d: d.avg7d != null ? Math.round(d.avg7d) : '—', failures: d.failures24h })}</span>
 </a></li>`
     )
     .join('');
@@ -619,7 +614,7 @@ function renderHomeStale() {
       (d) => `<li><a class="flex items-center flex-wrap gap-x-2.5 gap-y-1.5 px-3 py-[7px] border-b border-line bg-panel text-ink no-underline min-w-0 last:border-b-0 hover:bg-hover" href="#/device/${encodeURIComponent(d.name)}">
   <span class="${dotCls('muted')}"></span>
   <span class="font-medium truncate">${esc(dispName(d.name))}</span>
-  <span class="font-mono text-muted text-label">ultimo msg ${d.lastSeen ? fmtFull(d.lastSeen) : 'mai'}</span>
+  <span class="font-mono text-muted text-label">${t('home.staleLastSeen', { time: d.lastSeen ? fmtFull(d.lastSeen) : t('home.never') })}</span>
 </a></li>`
     )
     .join('');
@@ -637,9 +632,9 @@ async function loadHomeEvents() {
     for (const e of rows) counts[e.event_type] = (counts[e.event_type] || 0) + 1;
     el('hm-chips').innerHTML = Object.keys(counts).length
       ? Object.entries(counts)
-          .map(([t, c]) => `<span class="inline-flex items-center gap-[7px] border border-line bg-panel px-2.5 py-1 text-label text-muted"><span class="font-mono text-ink">${c}</span>${EVENT_IT[t] || esc(t)}</span>`)
+          .map(([t, c]) => `<span class="inline-flex items-center gap-[7px] border border-line bg-panel px-2.5 py-1 text-label text-muted"><span class="font-mono text-ink">${c}</span>${eventLabel(t)}</span>`)
           .join('')
-      : '<span class="inline-flex items-center gap-[7px] border border-line bg-panel px-2.5 py-1 text-label text-muted"><span class="font-mono text-ink">0</span>eventi</span>';
+      : `<span class="inline-flex items-center gap-[7px] border border-line bg-panel px-2.5 py-1 text-label text-muted"><span class="font-mono text-ink">0</span>${esc(t('home.eventsChip'))}</span>`;
   } catch {
     el('hm-ev-empty').hidden = false;
     el('hm-chips').innerHTML = '';
@@ -649,7 +644,7 @@ async function loadHomeEvents() {
 function renderHomeNet() {
   const box = el('hm-net');
   if (!state.snap || !state.snap.value) {
-    box.textContent = 'Nessuno snapshot disponibile.';
+    box.textContent = t('home.noSnapshot');
     return;
   }
   const v = state.snap.value;
@@ -671,9 +666,9 @@ function renderHomeNet() {
     .sort((a, b) => (Number(a.lqi) || 0) - (Number(b.lqi) || 0))
     .slice(0, 3);
   box.innerHTML =
-    `${nodes.length} nodi · ${routers} router · ${ends} end device` +
+    t('home.netSummary', { nodes: nodes.length, routers, ends }) +
     (weakest.length
-      ? '<br>link più deboli:<br>' +
+      ? '<br>' + t('home.weakestLinks') + '<br>' +
         weakest
           .map((l) => `<span class="font-mono text-ink">${esc(nm(linkEnd(l, 'source')))} → ${esc(nm(linkEnd(l, 'target')))} · LQI ${Number(l.lqi) || 0}</span>`)
           .join('<br>')
@@ -683,10 +678,10 @@ function renderHomeNet() {
 async function loadHomeSnapshot() {
   try {
     state.snap = await api('/api/network/latest');
-    el('hm-snap').innerHTML = `Snapshot: <span class="font-mono text-ink">${fmtFull(state.snap.ts)}</span> — <a href="#/map" class="text-ink">vedi</a>`;
+    el('hm-snap').innerHTML = `${t('home.snapshot', { time: `<span class="font-mono text-ink">${esc(fmtFull(state.snap.ts))}</span>` })} — <a href="#/map" class="text-ink">${esc(t('common.view'))}</a>`;
   } catch {
     state.snap = null;
-    el('hm-snap').textContent = 'Nessuna mappa di rete ancora (scansione giornaliera o manuale dalla vista Mappa).';
+    el('hm-snap').textContent = t('home.noMap');
   }
   renderHomeNet();
 }
@@ -709,7 +704,7 @@ async function loadHomeTrend() {
     return;
   }
   if (typeof Chart === 'undefined') {
-    empty.textContent = 'Chart.js non caricato';
+    empty.textContent = t('common.chartNotLoaded');
     empty.hidden = false;
     wrap.classList.add('hidden');
     return;
@@ -742,7 +737,7 @@ async function loadHomeTrend() {
           tooltip: {
             callbacks: {
               title: (items) => fmtDateTime(items[0].parsed.x),
-              label: (item) => 'LQI medio ' + item.parsed.y,
+              label: (item) => t('home.meshAvgTooltip', { value: item.parsed.y }),
             },
           },
         },
@@ -857,6 +852,13 @@ function setupSidebarResize() {
   });
 }
 
+function syncLangButtons() {
+  const active = I18n.getLang();
+  document.querySelectorAll('#lang-switcher button[data-lang]').forEach((b) => {
+    b.setAttribute('aria-pressed', b.dataset.lang === active ? 'true' : 'false');
+  });
+}
+
 function init() {
   el('rangebar').querySelector('button[data-range="24h"]').setAttribute('aria-pressed', 'true');
   el('rangebar').addEventListener('click', (e) => {
@@ -886,9 +888,18 @@ function init() {
   });
   setupSidebarResize();
   window.addEventListener('hashchange', onRoute);
+  el('lang-switcher').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-lang]');
+    if (b) void I18n.setLang(b.dataset.lang);
+  });
+  syncLangButtons();
+  I18n.onChange(() => {
+    syncLangButtons();
+    onRoute();
+  });
   onRoute();
   void poll();
   setInterval(() => void poll(), 15000);
 }
 
-init();
+I18n.ready.then(init);

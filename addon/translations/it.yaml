@@ -1,0 +1,19 @@
+configuration:
+  mqtt_host:
+    name: Host MQTT esterno
+    description: Lasciare vuoto per usare l'add-on Mosquitto collegato.
+  mqtt_port:
+    name: Porta MQTT esterna
+    description: Porta del broker esterno (ignorata quando si usa l'add-on Mosquitto).
+  mqtt_username:
+    name: Username MQTT esterno
+    description: Necessario solo se il broker esterno richiede credenziali.
+  mqtt_password:
+    name: Password MQTT esterna
+    description: Necessaria solo se il broker esterno richiede credenziali.
+  base_topic:
+    name: Topic base Zigbee2MQTT
+    description: "Deve corrispondere al topic base configurato in Zigbee2MQTT (predefinito \"zigbee2mqtt\")."
+  api_key:
+    name: Chiave API
+    description: "Protegge /api/* quando la porta 8080 diretta è abilitata. Lasciare vuoto per disabilitare. Non necessaria per l'accesso dalla barra laterale (ingress)."
