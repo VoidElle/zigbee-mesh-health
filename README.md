@@ -74,6 +74,16 @@ npm run css        # or: npm run css:watch
 
 `public/styles.css` is generated and committed — include the regenerated file in your commit.
 
+### Tests
+
+The suite uses Node's built-in test runner (`node:test`) against the compiled `dist/` output — no extra dependencies:
+
+```bash
+npm test   # runs `npm run build`, then `node --test test/*.test.mjs`
+```
+
+Unit tests live in `test/*.test.mjs`; the golden HTTP-API fixtures and the golden-capture tool live in `test/fixtures/`.
+
 ## Docker
 
 ```bash

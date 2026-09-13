@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "test": "npm run build && node --test test/*.test.mjs",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "css": "tailwindcss -i ./src/styles/tailwind.css -o ./public/styles.css --minify",

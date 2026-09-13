@@ -15,4 +15,4 @@ Domain facts (verified against real Z2M 2026 logs):
 - `EventType` is a fixed union (src/storage/events.ts). Adding a type means touching: events.ts, EVENT_TYPES in src/api/server.ts, dropdown in public/index.html, EVENT_IT in public/app.js. Check all four.
 - Classification is ordered regex (classifyLogging): route_failure → delivery_failure → device_leave → bridge_restart → other. Keep the order, first match wins.
 
-Verification: any non-trivial parser/classifier change extends `scripts/test-events.mjs` (assert-based, runs against dist/ after `npm run build`, tmp DATA_DIR). Analysis changes extend `scripts/test-status.mjs`.
+Verification: any non-trivial parser/classifier change extends `test/events.test.mjs`; analysis changes extend `test/status.test.mjs` (node:test, runs against `dist/` after `npm run build`, temp `DATA_DIR`). `npm test` runs everything.

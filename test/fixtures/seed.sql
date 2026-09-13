@@ -1,5 +1,5 @@
 -- Representative fixture for port verification. Run with:
---   sqlite3 <db> < scripts/fixtures/seed.sql
+--   sqlite3 <db> < test/fixtures/seed.sql
 -- Timestamps are relative to seed time so samples sit well inside the
 -- 24h/7d/30d windows; a fixed 2020 block exercises retention merge.
 PRAGMA journal_mode = DELETE;

@@ -1,0 +1,27 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+      # Prisma client is generated into src/generated/prisma (gitignored), so it
+      # must exist before tsc; tsconfig.json is already checked out for the
+      # generator to infer CJS vs ESM from it.
+      - run: npx prisma generate
+      - run: npm test
+      - run: node --check public/app.js

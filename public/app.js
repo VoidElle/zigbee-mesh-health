@@ -20,8 +20,8 @@ const MOCK_MAP = {
     { sourceIeee: '0x00124b0018e1b6eb', targetIeee: '0x00124b0022b1c3dd', lqi: 132 },
     { sourceIeee: '0x00124b0018e1b6eb', targetIeee: '0x00124b0022b1c3aa', lqi: 187 },
     { sourceIeee: '0x00124b0018e1b6eb', targetIeee: '0x00124b0022b1c3bb', lqi: 62 },
-    { sourceIeee: '0x00124b0022b1c3dd', targetIeee: '0x00124b0022b1c3cc', lqi: 31 },
-    { sourceIeee: '0x00124b0022b1c3dd', targetIeee: '0x00124b0022b1c3aa', lqi: 105 },
+    { sourceIeeeAddr: '0x00124b0022b1c3dd', targetIeeeAddr: '0x00124b0022b1c3cc', lqi: 31 },
+    { sourceIeeeAddr: '0x00124b0022b1c3dd', targetIeeeAddr: '0x00124b0022b1c3aa', lqi: 105 },
   ],
 };
 const RANGES_MS = { '24h': 864e5, '7d': 6048e5, '30d': 2592e6 };
@@ -396,6 +396,34 @@ async function loadEvents() {
 }
 
 /* ===== Network map: client-rendered SVG, radial around coordinator ===== */
+function lqiBucket(lqi) {
+  const v = Number(lqi) || 0;
+  if (v >= 120) return { col: '#4FB477', id: 'arrow-ok' };
+  if (v >= 60) return { col: '#D9A441', id: 'arrow-warn' };
+  return { col: '#C1533E', id: 'arrow-crit' };
+}
+
+function nodeRadius(n, isCoord) {
+  const t = String((n && n.type) || '');
+  if (isCoord || /coordinator/i.test(t)) return 9;
+  if (/router/i.test(t)) return 6;
+  return 5;
+}
+
+function trimEnd(s, t, tRadius) {
+  const dx = t.x - s.x, dy = t.y - s.y;
+  const d = Math.hypot(dx, dy) || 1;
+  const r = (Number(tRadius) || 0) + 2;
+  return { x: t.x - (dx / d) * r, y: t.y - (dy / d) * r };
+}
+
+function linkEnd(l, side) {
+  const a = side === 'source' ? 'sourceIeee' : 'targetIeee';
+  const b = side === 'source' ? 'sourceIeeeAddr' : 'targetIeeeAddr';
+  const c = side === 'source' ? 'source' : 'target';
+  return String(l[a] ?? l[b] ?? l[c] ?? '').toLowerCase();
+}
+
 function buildMapSvg(value) {
   if (!value || !Array.isArray(value.nodes) || !value.nodes.length) return '';
   const nodes = value.nodes;
@@ -425,16 +453,27 @@ function buildMapSvg(value) {
     });
   }
 
+  const nodeByKey = new Map(nodes.map((n) => [key(n), n]));
   let edges = '';
   for (const l of links) {
-    const s = pos.get(String(l.sourceIeee ?? l.source ?? '').toLowerCase());
-    const t = pos.get(String(l.targetIeee ?? l.target ?? '').toLowerCase());
+    const sk = linkEnd(l, 'source');
+    const tk = linkEnd(l, 'target');
+    const s = pos.get(sk);
+    const t = pos.get(tk);
     if (!s || !t) continue;
+    const b = lqiBucket(l.lqi);
     const lqi = Number(l.lqi) || 0;
-    const col = lqi >= 120 ? '#4FB477' : lqi >= 60 ? '#D9A441' : '#C1533E';
     const w = (0.8 + 3.2 * (lqi / 255)).toFixed(2);
-    edges += `<line x1="${s.x.toFixed(1)}" y1="${s.y.toFixed(1)}" x2="${t.x.toFixed(1)}" y2="${t.y.toFixed(1)}" stroke="${col}" stroke-width="${w}" opacity="0.85"><title>LQI ${lqi}</title></line>`;
+    const end = trimEnd(s, t, nodeRadius(nodeByKey.get(tk)));
+    edges += `<line x1="${s.x.toFixed(1)}" y1="${s.y.toFixed(1)}" x2="${end.x.toFixed(1)}" y2="${end.y.toFixed(1)}" stroke="${b.col}" stroke-width="${w}" opacity="0.85" marker-end="url(#${b.id})"><title>LQI ${lqi}</title></line>`;
   }
+  const defs = edges
+    ? `<defs>
+<marker id="arrow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4FB477"/></marker>
+<marker id="arrow-warn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#D9A441"/></marker>
+<marker id="arrow-crit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#C1533E"/></marker>
+</defs>`
+    : '';
 
   const nameByIeee = new Map(
     state.devices.filter((d) => d.ieee).map((d) => [d.ieee.toLowerCase(), d.name])
@@ -450,7 +489,7 @@ function buildMapSvg(value) {
     const isC = n === coord;
     const isR = !isC && isType(n, /router/i);
     const fill = isC ? '#E4E7EA' : isR ? '#9AA4AC' : '#6A7480';
-    const r = isC ? 9 : isR ? 6 : 5;
+    const r = nodeRadius(n, isC);
     const named = nameByIeee.get(key(n));
     const label = isC ? 'Coordinatore' : named || shortAddr(n);
     const mono = !isC && !named;
@@ -458,7 +497,7 @@ function buildMapSvg(value) {
 <text x="${p.x.toFixed(1)}" y="${(p.y + r + 14).toFixed(1)}" text-anchor="middle" fill="${mono ? '#8B939B' : '#E4E7EA'}" font-size="${mono ? 9.5 : 10.5}" font-family="${mono ? "'IBM Plex Mono', Menlo, monospace" : "'IBM Plex Sans', sans-serif"}">${esc(label)}</text>`;
   }
 
-  return `<svg class="block w-full h-auto" viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mappa della rete Zigbee">${edges}${nodeSvg}</svg>`;
+  return `<svg class="block w-full h-auto" viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mappa della rete Zigbee">${defs}${edges}${nodeSvg}</svg>`;
 }
 
 async function loadMap() {
@@ -598,7 +637,7 @@ function renderHomeNet() {
     (weakest.length
       ? '<br>link più deboli:<br>' +
         weakest
-          .map((l) => `<span class="font-mono text-ink">${esc(nm(l.sourceIeee))} → ${esc(nm(l.targetIeee))} · LQI ${Number(l.lqi) || 0}</span>`)
+          .map((l) => `<span class="font-mono text-ink">${esc(nm(linkEnd(l, 'source')))} → ${esc(nm(linkEnd(l, 'target')))} · LQI ${Number(l.lqi) || 0}</span>`)
           .join('<br>')
       : '');
 }
